@@ -925,12 +925,34 @@
     .auth-card { padding: 32px 22px; }
 
     /* Stats grid: 2 cols on mobile */
-    .stats-grid { grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
-    .stat-value { font-size: 22px; }
+    .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+    .stat-value { font-size: 20px; }
+    .stat-card { padding: 14px 16px; }
+    .stat-icon { width: 32px; height: 32px; margin-bottom: 10px; }
 
     /* 2-col grids become 1-col */
-    .grid-2 { grid-template-columns: 1fr; }
+    .grid-2 { grid-template-columns: 1fr; gap: 14px; }
     .form-row { grid-template-columns: 1fr; gap: 0; }
+    
+    /* Order steps scroll */
+    .order-steps { gap: 0; }
+    .step { min-width: 70px; padding: 8px 10px; }
+    .step-label { font-size: 10px; }
+    
+    /* Sidebar logo smaller */
+    .sidebar-logo h2 { font-size: 15px; }
+    
+    /* Topbar tighter */
+    .topbar { padding: 0 12px; height: 56px; }
+    
+    /* Page content less padding */
+    .page-content { padding: 12px 14px; }
+    
+    /* Auth card padding */
+    .auth-card { padding: 28px 18px; }
+    
+    /* Profile banner smaller */
+    #page-my-profile > div:first-child { padding: 16px 18px; }
 
     /* Order steps compact */
     .order-steps { overflow-x: auto; }
@@ -1080,7 +1102,11 @@
         <input type="password" id="su-pass2" placeholder="Repeat password">
       </div>
     </div>
-    <button class="btn btn-primary" onclick="handleSignup()">Create Account</button>
+    <div style="background:var(--warning-bg);border:1px solid #fde68a;border-radius:var(--radius-sm);padding:11px 14px;margin-bottom:16px;display:flex;gap:9px;align-items:flex-start;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2" style="flex-shrink:0;margin-top:1px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <span style="font-size:12px;color:var(--warning);line-height:1.5;">Your account requires <strong>admin approval</strong> before you can login. You'll receive your login credentials once approved.</span>
+    </div>
+    <button class="btn btn-primary" onclick="handleSignup()">Submit Request</button>
     <div class="auth-link">
       Already have an account? <a onclick="showScreen('login')">Sign In</a>
     </div>
@@ -1178,6 +1204,10 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
           My Profile
         </div>
+        <div class="nav-item" data-page="contact" onclick="showPage('contact')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          Contact Us
+        </div>
       </div>
 
       <!-- Admin nav -->
@@ -1238,34 +1268,34 @@
 
       <!-- ── RESELLER: DASHBOARD ── -->
       <div class="page active" id="page-dashboard">
-        <div class="stats-grid">
+        <div class="stats-grid" id="reseller-stats-grid">
           <div class="stat-card purple">
             <div class="stat-icon purple">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
             </div>
-            <div class="stat-value">3</div>
+            <div class="stat-value" id="stat-total">0</div>
             <div class="stat-label">Total Orders</div>
-            <div class="stat-change">↑ This month</div>
+            <div class="stat-change" id="stat-month"></div>
           </div>
           <div class="stat-card gold">
             <div class="stat-icon gold">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             </div>
-            <div class="stat-value">1</div>
-            <div class="stat-label">Pending Payment</div>
+            <div class="stat-value" id="stat-pending">0</div>
+            <div class="stat-label">Pending</div>
           </div>
           <div class="stat-card green">
             <div class="stat-icon green">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
             </div>
-            <div class="stat-value">1</div>
+            <div class="stat-value" id="stat-shipped">0</div>
             <div class="stat-label">Shipped</div>
           </div>
           <div class="stat-card blue">
             <div class="stat-icon blue">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
             </div>
-            <div class="stat-value">1</div>
+            <div class="stat-value" id="stat-delivered">0</div>
             <div class="stat-label">Delivered</div>
           </div>
         </div>
@@ -1445,16 +1475,14 @@
                 <input type="text" id="upi-txn" placeholder="e.g. 123456789012" style="font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;">
               </div>
               <div class="form-group">
-                <label>Upload Payment Screenshot</label>
-                <div class="upload-area">
-                  <input type="file" accept="image/*" onchange="handleUpload(this)">
+                <label>Upload Payment Screenshots <span style="font-weight:400;color:var(--text-light);font-size:11px;text-transform:none;letter-spacing:0;">— add multiple if needed</span></label>
+                <div class="upload-area" onclick="document.getElementById('upi-screenshot-input').click()">
+                  <input type="file" id="upi-screenshot-input" accept="image/*" multiple style="display:none;" onchange="handleUpload(this)">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                  <p><strong>Click to upload</strong> or drag & drop<br>PNG, JPG up to 10MB</p>
+                  <p><strong>Click to upload</strong> — select multiple files<br>PNG, JPG up to 10MB each</p>
                 </div>
-                <div class="upload-preview" id="upload-preview">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-                  <span id="upload-filename">Screenshot uploaded</span>
-                </div>
+                <!-- Screenshot previews grid -->
+                <div id="screenshots-grid" style="display:none;margin-top:12px;display:flex;flex-wrap:wrap;gap:10px;"></div>
               </div>
               <div style="display:flex; gap:12px;">
                 <button class="btn btn-outline" onclick="goToStep(2)">← Back</button>
@@ -1724,6 +1752,60 @@
         </div>
       </div>
 
+      <!-- ── RESELLER: CONTACT US ── -->
+      <div class="page" id="page-contact">
+        <div style="max-width:560px;">
+          <div class="card" style="margin-bottom:20px;">
+            <div class="card-header"><h3 class="card-title">Contact Sri Varuni</h3></div>
+            <div class="card-body">
+              <div style="display:flex;align-items:center;gap:20px;padding:20px;background:linear-gradient(135deg,var(--purple-dark),var(--purple-mid));border-radius:var(--radius);margin-bottom:20px;">
+                <div style="width:52px;height:52px;background:rgba(201,169,110,.2);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                </div>
+                <div>
+                  <div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:4px;letter-spacing:.5px;">Call / WhatsApp</div>
+                  <a href="tel:+919247551711" style="font-size:24px;font-weight:700;color:#fff;text-decoration:none;font-family:Georgia,serif;letter-spacing:.5px;">+91 92475 51711</a>
+                  <div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:4px;">Mon–Sat, 10am–7pm IST</div>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:12px;">
+                <a href="tel:+919247551711" class="btn btn-primary" style="width:100%;justify-content:center;gap:10px;font-size:15px;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                  Call Now
+                </a>
+                <a href="https://wa.me/919247551711" target="_blank" class="btn" style="width:100%;justify-content:center;background:#25D366;color:#fff;font-size:15px;gap:10px;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
+                  WhatsApp Us
+                </a>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3 class="card-title">Quick Help</h3></div>
+            <div class="card-body">
+              <div style="display:flex;flex-direction:column;gap:0;">
+                <div style="padding:14px 0;border-bottom:1px solid var(--border);">
+                  <div style="font-size:13px;font-weight:600;color:var(--td);margin-bottom:3px;">Order not confirmed?</div>
+                  <div style="font-size:12px;color:var(--tl);">Payment verification usually takes 1-2 hours during business hours. Call us if it has been more than 4 hours.</div>
+                </div>
+                <div style="padding:14px 0;border-bottom:1px solid var(--border);">
+                  <div style="font-size:13px;font-weight:600;color:var(--td);margin-bottom:3px;">Want to cancel an order?</div>
+                  <div style="font-size:12px;color:var(--tl);">You can cancel pending orders directly from My Orders before payment is verified.</div>
+                </div>
+                <div style="padding:14px 0;border-bottom:1px solid var(--border);">
+                  <div style="font-size:13px;font-weight:600;color:var(--td);margin-bottom:3px;">Tracking not updated?</div>
+                  <div style="font-size:12px;color:var(--tl);">Tracking is updated when your order is dispatched. WhatsApp us your order ID for status.</div>
+                </div>
+                <div style="padding:14px 0;">
+                  <div style="font-size:13px;font-weight:600;color:var(--td);margin-bottom:3px;">New reseller enquiry?</div>
+                  <div style="font-size:12px;color:var(--tl);">Call or WhatsApp us to learn about reseller margins and catalogue access.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- ── ADMIN: DASHBOARD ── -->
       <div class="page" id="page-admin-dashboard">
         <div class="stats-grid">
@@ -1731,28 +1813,28 @@
             <div class="stat-icon purple">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
             </div>
-            <div class="stat-value">5</div>
+            <div class="stat-value" id="admin-stat-total">0</div>
             <div class="stat-label">Total Orders</div>
           </div>
           <div class="stat-card gold">
             <div class="stat-icon gold">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             </div>
-            <div class="stat-value">2</div>
+            <div class="stat-value" id="admin-stat-pending">0</div>
             <div class="stat-label">Awaiting Verification</div>
           </div>
           <div class="stat-card green">
             <div class="stat-icon green">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
             </div>
-            <div class="stat-value">₹12,450</div>
+            <div class="stat-value" id="admin-stat-revenue">₹0</div>
             <div class="stat-label">Revenue This Month</div>
           </div>
           <div class="stat-card blue">
             <div class="stat-icon blue">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
             </div>
-            <div class="stat-value">3</div>
+            <div class="stat-value" id="admin-stat-resellers">0</div>
             <div class="stat-label">Active Resellers</div>
           </div>
         </div>
@@ -1815,6 +1897,10 @@
           <div class="card-header">
             <h3 class="card-title">Reseller Accounts</h3>
             <button class="btn btn-gold btn-sm" onclick="openAddReseller()">+ Add Reseller</button>
+          </div>
+          <div style="padding:0 0 0 24px;border-bottom:1px solid var(--border);display:flex;gap:4px;">
+            <div class="tab active" onclick="filterResellers('active',this)" style="font-size:12px;padding:10px 16px;">Active</div>
+            <div class="tab" onclick="filterResellers('pending',this)" style="font-size:12px;padding:10px 16px;">Pending Approval <span id="pending-resellers-badge" style="background:var(--gold);color:var(--pd);font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:4px;">0</span></div>
           </div>
           <div class="table-wrap">
             <table>
@@ -1943,6 +2029,77 @@
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('modal-tracking')">Cancel</button>
       <button class="btn btn-primary" onclick="saveTracking()">Save & Notify Reseller</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Order Modal (Admin) -->
+<div class="modal-overlay" id="modal-edit-order">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-header">
+      <h3>Edit Order</h3>
+      <button class="modal-close" onclick="closeModal('modal-edit-order')">&#215;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-order-id">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Customer Name</label>
+          <input type="text" id="edit-cust-name" placeholder="Customer name">
+        </div>
+        <div class="form-group">
+          <label>Customer Phone</label>
+          <input type="tel" id="edit-cust-phone" placeholder="+91 XXXXX XXXXX">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Delivery Address</label>
+        <textarea id="edit-cust-address" placeholder="Full address"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>City</label>
+          <input type="text" id="edit-cust-city">
+        </div>
+        <div class="form-group">
+          <label>State</label>
+          <input type="text" id="edit-cust-state">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Pincode</label>
+          <input type="text" id="edit-cust-pin" style="font-family:monospace;">
+        </div>
+        <div class="form-group">
+          <label>Order Status</label>
+          <select id="edit-order-status">
+            <option value="pending">Pending</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="shipped">Shipped</option>
+            <option value="delivered">Delivered</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>UPI Transaction ID</label>
+          <input type="text" id="edit-upi-txn" style="font-family:monospace;">
+        </div>
+        <div class="form-group">
+          <label>Total Price (₹)</label>
+          <input type="number" id="edit-price" min="0">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea id="edit-notes" placeholder="Internal notes"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-edit-order')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEditOrder()">Save Changes</button>
     </div>
   </div>
 </div>
@@ -2258,13 +2415,26 @@ async function handleLogin() {
       log('3. Fetching profile...');
       const profiles = await sb.get('profiles', 'id=eq.' + data.user.id + '&select=*', data.access_token);
       profile = profiles && profiles[0] ? profiles[0] : null;
-      log('4. Profile: ' + (profile ? profile.role : 'NOT FOUND'));
+      log('4. Profile: ' + (profile ? profile.role + '/' + profile.status : 'NOT FOUND'));
     } catch(pe) { log('4. Profile fetch failed: ' + pe.message); }
 
-    // If profile missing (schema not run yet), create a fallback
+    // If profile missing, create a fallback
     if (!profile) {
       profile = { id: data.user.id, email, name: email.split('@')[0], role: 'reseller', status: 'active' };
     }
+    
+    // Block pending resellers
+    if (profile.role === 'reseller' && profile.status === 'pending') {
+      await sb.signOut(data.access_token).catch(() => {});
+      clearSession();
+      throw new Error('Your account is pending admin approval. You will be notified once approved. Contact: +91 92475 51711');
+    }
+    if (profile.status === 'suspended') {
+      await sb.signOut(data.access_token).catch(() => {});
+      clearSession();
+      throw new Error('Your account has been suspended. Contact: +91 92475 51711');
+    }
+
     currentUserProfile = profile;
     currentUser = { email, name: profile.name, role: profile.role, ...profile };
     await loadAllData();
@@ -2307,9 +2477,9 @@ async function handleSignup() {
   btn.textContent = 'Creating account...'; btn.disabled = true;
 
   try {
-    await sb.signUp(email, pass, { name, phone, business, city, role: 'reseller' });
-    showToast('Account created! Check your email to verify, then sign in.');
-    setTimeout(() => showScreen('login'), 2500);
+    await sb.signUp(email, pass, { name, phone, business, city, role: 'reseller', status: 'pending' });
+    showToast('Request submitted! Admin will review and send your login credentials.');
+    setTimeout(() => showScreen('login'), 3000);
   } catch(err) {
     showToast(err.message || 'Signup failed', 'error');
   } finally {
@@ -2433,14 +2603,18 @@ async function placeOrder() {
   const upiTxn = document.getElementById('upi-txn').value || '';
   const notes  = document.getElementById('order-notes').value || '';
 
-  // Upload screenshot if provided
+  // Upload multiple screenshots
   let screenshotUrl = null;
-  const fileInput = document.getElementById('upi-screenshot-input');
-  if (fileInput && fileInput.files && fileInput.files[0]) {
+  if (uploadedScreenshots.length > 0) {
     try {
-      const file  = fileInput.files[0];
-      const path  = SESSION.userId + '/' + Date.now() + '_' + file.name;
-      screenshotUrl = await sb.uploadFile('screenshots', path, file, SESSION.token);
+      const urls = [];
+      for (const ss of uploadedScreenshots) {
+        const blob = await (await fetch(ss.dataUrl)).blob();
+        const path = SESSION.userId + '/' + Date.now() + '_' + ss.name;
+        const url  = await sb.uploadFile('screenshots', path, blob, SESSION.token);
+        urls.push(url);
+      }
+      screenshotUrl = urls.join(','); // store multiple URLs comma-separated
     } catch(e) { console.warn('Screenshot upload failed:', e); }
   }
 
@@ -2744,6 +2918,8 @@ function showPage(name) {
   if (name === 'admin-catalog') renderCatalog();
   if (name === 'place-order') {
     orderCart = [];
+    uploadedScreenshots = [];
+    renderScreenshotGrid();
     renderCart();
     shipToSelfOn = false;
     var toggle = document.getElementById('ship-self-toggle');
@@ -2785,6 +2961,29 @@ function invoiceNo(orderId) { return 'INV-' + orderId.replace('SVO-', '2024-'); 
 // ══════════════════════════════════════════════
 function renderDashboard() {
   const myOrders = ORDERS.filter(o => o.resellerEmail === currentUser?.email);
+  
+  // Update stat cards dynamically
+  const total     = myOrders.length;
+  const pending   = myOrders.filter(o => o.status === 'pending').length;
+  const shipped   = myOrders.filter(o => o.status === 'shipped').length;
+  const delivered = myOrders.filter(o => o.status === 'delivered').length;
+  const thisMonth = myOrders.filter(o => {
+    const d = new Date(o.date);
+    const now = new Date();
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  }).length;
+
+  const setStat = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  setStat('stat-total',     total);
+  setStat('stat-pending',   pending);
+  setStat('stat-shipped',   shipped);
+  setStat('stat-delivered', delivered);
+  setStat('stat-month',     thisMonth > 0 ? '↑ ' + thisMonth + ' this month' : '');
+
+  // Update nav badge
+  const badge = document.getElementById('nav-order-count');
+  if (badge) badge.textContent = total;
+
   const tbody = document.getElementById('reseller-orders-tbody');
   tbody.innerHTML = myOrders.slice(0, 5).map(o => `
     <tr>
@@ -2882,6 +3081,8 @@ function renderCart() {
   }).join('');
 
   totalEl.textContent = '₹' + total.toLocaleString();
+  // Add magnify to cart images after render
+  setTimeout(addCartImageMagnify, 50);
 }
 
 function cartQty(idx, delta) {
@@ -2913,6 +3114,10 @@ function goToStep(step) {
     if (!name || !addr || !pin) { showToast('Please fill all customer details', 'error'); return; }
   }
   if (step === 4) {
+    // Validate screenshot uploaded
+    const upiTxn = document.getElementById('upi-txn').value.trim();
+    if (uploadedScreenshots.length === 0) { showToast('Please upload at least one payment screenshot', 'error'); return; }
+    if (!upiTxn) { showToast('Please enter the UPI transaction ID', 'error'); return; }
     // Populate confirm page
     const total = cartTotal();
     // Items list
@@ -2948,7 +3153,17 @@ function goToStep(step) {
 
 function handleUpload(input) {
   if (input.files && input.files[0]) {
-    document.getElementById('upload-filename').textContent = '✓ ' + input.files[0].name + ' uploaded';
+    const file = input.files[0];
+    // Validate it's an image
+    if (!file.type.startsWith('image/')) { 
+      showToast('Please upload an image file (JPG, PNG)', 'error'); 
+      input.value = ''; return; 
+    }
+    if (file.size > 10 * 1024 * 1024) { 
+      showToast('File too large. Max 10MB', 'error'); 
+      input.value = ''; return; 
+    }
+    document.getElementById('upload-filename').textContent = '✓ ' + file.name + ' (' + (file.size/1024).toFixed(0) + 'KB)';
     document.getElementById('upload-preview').classList.add('show');
   }
 }
@@ -3062,14 +3277,16 @@ function viewOrder(orderId) {
   const footer = document.getElementById('modal-order-footer');
   if (isAdmin) {
     footer.innerHTML = '<button class="btn btn-outline" onclick="closeModal(\'modal-order\')">Close</button>' +
-      (o.status === 'pending' ? '<button class="btn btn-success btn-sm" onclick="verifyPayment(\''+o.id+'\')">&check; Verify Payment</button>' : '') +
-      (o.status === 'confirmed' ? '<button class="btn btn-primary btn-sm" onclick="openTracking(\''+o.id+'\')">&plus; Add Tracking</button>' : '') +
+      '<button class="btn btn-outline btn-sm" onclick="openEditOrder(\''+o.id+'\')">&check; Edit</button>' +
+      (o.status === 'pending' ? '<button class="btn btn-success btn-sm" onclick="verifyPayment(\''+o.id+'\')">&check; Verify</button>' : '') +
+      (o.status === 'confirmed' ? '<button class="btn btn-primary btn-sm" onclick="openTracking(\''+o.id+'\')">&plus; Ship</button>' : '') +
       '<button class="btn btn-g btn-sm" onclick="showLabel(\''+o.id+'\')">&starf; Label</button>' +
       '<button class="btn btn-o btn-sm" onclick="showInvoice(\''+o.id+'\')">&FilledSmallSquare; Invoice</button>';
   } else {
     footer.innerHTML = '<button class="btn btn-outline" onclick="closeModal(\'modal-order\')">Close</button>' +
       '<button class="btn btn-o btn-sm" onclick="showInvoice(\''+o.id+'\')">&FilledSmallSquare; Invoice</button>' +
-      (o.tracking ? '<button class="btn btn-p btn-sm" onclick="showLabel(\''+o.id+'\')">&starf; Shipping Label</button>' : '');
+      (o.tracking ? '<button class="btn btn-p btn-sm" onclick="showLabel(\''+o.id+'\')">&starf; Label</button>' : '') +
+      (o.status === 'pending' ? '<button class="btn btn-danger btn-sm" onclick="cancelOrder(\''+o.id+'\')">&times; Cancel Order</button>' : '');
   }
   openModal('modal-order');
 }
@@ -3079,6 +3296,24 @@ function viewOrder(orderId) {
 // ══════════════════════════════════════════════
 function renderAdminPending() {
   const pending = ORDERS.filter(o => o.status === 'pending' || o.status === 'confirmed');
+  
+  // Update admin stat cards
+  const now = new Date();
+  const monthRevenue = ORDERS.filter(o => {
+    const d = new Date(o.date || o.created_at);
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  }).reduce((sum, o) => sum + (o.price || 0), 0);
+
+  const setStat = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  setStat('admin-stat-total',     ORDERS.length);
+  setStat('admin-stat-pending',   pending.length);
+  setStat('admin-stat-revenue',   '₹' + monthRevenue.toLocaleString());
+  setStat('admin-stat-resellers', RESELLERS.length);
+  
+  // Update badge
+  const badge = document.getElementById('admin-order-badge');
+  if (badge) badge.textContent = pending.length;
+
   document.getElementById('admin-pending-tbody').innerHTML = pending.map(o => `
     <tr>
       <td><span style="font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; font-size:12px; color:var(--purple-light);">${o.id}</span></td>
@@ -3122,19 +3357,36 @@ function searchOrders(q) {
 }
 
 function renderResellers() {
-  document.getElementById('resellers-tbody').innerHTML = RESELLERS.map(r => `
-    <tr>
-      <td><strong>${r.name}</strong></td>
-      <td>${r.business}</td>
-      <td style="font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; font-size:12px;">${r.phone}</td>
-      <td>${r.city}</td>
-      <td><span class="badge badge-confirmed">${r.orders}</span></td>
-      <td><span class="badge badge-delivered">Active</span></td>
-      <td>
-        <button class="btn btn-outline btn-sm" onclick="showToast('WhatsApp notification sent to ${r.name}!')">📲 Notify</button>
+  const filtered = RESELLERS.filter(r => resellerFilter === 'pending' 
+    ? (r.status === 'pending' || r.status === 'suspended')
+    : r.status === 'active'
+  );
+  
+  // Update pending badge
+  const pendingCount = RESELLERS.filter(r => r.status === 'pending').length;
+  const badge = document.getElementById('pending-resellers-badge');
+  if (badge) badge.textContent = pendingCount;
+
+  document.getElementById('resellers-tbody').innerHTML = filtered.map(r => {
+    const isPending = r.status === 'pending' || r.status === 'suspended';
+    return `<tr>
+      <td><strong>${r.name || '—'}</strong></td>
+      <td>${r.business || '—'}</td>
+      <td style="font-family:monospace;font-size:12px;">${r.phone || '—'}</td>
+      <td>${r.city || '—'}</td>
+      <td><span class="badge badge-confirmed">${r.orders || 0}</span></td>
+      <td>${isPending 
+        ? '<span class="badge badge-pending">Pending Approval</span>' 
+        : '<span class="badge badge-delivered">Active</span>'}</td>
+      <td style="display:flex;gap:4px;flex-wrap:wrap;">
+        ${isPending 
+          ? `<button class="btn btn-success btn-sm" onclick="approveReseller('${r.email}')">✓ Approve</button>
+             <button class="btn btn-danger btn-sm" onclick="rejectReseller('${r.email}')">✕ Reject</button>`
+          : `<button class="btn btn-outline btn-sm" onclick="showToast('Notified ${r.name}!')">📲 Notify</button>`
+        }
       </td>
-    </tr>
-  `).join('');
+    </tr>`;
+  }).join('') || '<tr><td colspan="7"><div class="empty-state" style="padding:24px;"><p>' + (resellerFilter === 'pending' ? 'No pending requests' : 'No active resellers') + '</p></div></td></tr>';
 }
 
 function openAddReseller() { openModal('modal-add-reseller'); }
@@ -3431,15 +3683,15 @@ function toggleShipToSelf() {
   if (shipToSelfOn) {
     toggle.style.background = 'var(--ok)';
     knob.style.transform = 'translateX(18px)';
-    // Auto-fill from profile
-    var u = USERS[currentUser.email] || {};
+    // Auto-fill from currentUserProfile (Supabase)
+    var u = currentUserProfile || {};
     document.getElementById('cust-name').value    = u.name    || '';
     document.getElementById('cust-phone').value   = u.phone   || '';
     document.getElementById('cust-address').value = u.address || '';
     document.getElementById('cust-city').value    = u.city    || '';
     document.getElementById('cust-state').value   = u.state   || '';
     document.getElementById('cust-pin').value     = u.pin     || '';
-    if (!u.address) showToast('Add your address in My Profile first', 'error');
+    if (!u.address) showToast('Add your address in My Profile first — go to My Profile', 'error');
     else showToast('Address auto-filled from your profile');
   } else {
     toggle.style.background = 'var(--border)';
@@ -3533,6 +3785,209 @@ function applyLogoEverywhere(src) {
   const sbText = document.getElementById('sb-logo-text');
   if (sbImg && sbSrc) { sbSrc.src = src; sbImg.style.display = 'block'; }
   if (sbText) sbText.style.display = 'none';
+}
+
+
+
+// ══════════════════════════════════════════════
+// MULTI-SCREENSHOT UPLOAD
+// ══════════════════════════════════════════════
+let uploadedScreenshots = []; // array of {file, dataUrl, name}
+
+function handleUpload(input) {
+  if (!input.files || !input.files.length) return;
+  const grid = document.getElementById('screenshots-grid');
+  if (grid) grid.style.display = 'flex';
+
+  Array.from(input.files).forEach(file => {
+    if (!file.type.startsWith('image/')) { showToast('Only image files allowed', 'error'); return; }
+    if (file.size > 10 * 1024 * 1024) { showToast(file.name + ' is too large (max 10MB)', 'error'); return; }
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      const idx = uploadedScreenshots.length;
+      uploadedScreenshots.push({ file, dataUrl: ev.target.result, name: file.name });
+      renderScreenshotGrid();
+    };
+    reader.readAsDataURL(file);
+  });
+  // Reset input so same file can be re-selected
+  input.value = '';
+}
+
+function renderScreenshotGrid() {
+  const grid = document.getElementById('screenshots-grid');
+  if (!grid) return;
+  if (uploadedScreenshots.length === 0) { grid.style.display = 'none'; return; }
+  grid.style.display = 'flex';
+  grid.innerHTML = uploadedScreenshots.map((ss, idx) => `
+    <div style="position:relative;width:80px;height:80px;flex-shrink:0;" 
+         onmouseenter="zoomScreenshot(this, true)" onmouseleave="zoomScreenshot(this, false)">
+      <img src="${ss.dataUrl}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:2px solid var(--ok);cursor:zoom-in;display:block;">
+      <button onclick="removeScreenshot(${idx})" 
+        style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--err);color:#fff;border:none;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;line-height:1;">&#215;</button>
+    </div>
+  `).join('') + `
+    <div onclick="document.getElementById('upi-screenshot-input').click()" 
+      style="width:80px;height:80px;border:2px dashed var(--border);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--tl);font-size:11px;gap:4px;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add more
+    </div>
+  `;
+}
+
+function removeScreenshot(idx) {
+  uploadedScreenshots.splice(idx, 1);
+  renderScreenshotGrid();
+}
+
+function zoomScreenshot(container, enter) {
+  const img = container.querySelector('img');
+  if (!img) return;
+  if (enter) {
+    img.style.transform = 'scale(3)';
+    img.style.transformOrigin = 'center center';
+    img.style.zIndex = '1000';
+    img.style.position = 'relative';
+    img.style.boxShadow = '0 8px 32px rgba(0,0,0,.4)';
+    img.style.borderRadius = '4px';
+  } else {
+    img.style.transform = 'scale(1)';
+    img.style.zIndex = '';
+    img.style.position = '';
+    img.style.boxShadow = '';
+  }
+}
+
+// Also add magnify for catalog images in cart
+function addCartImageMagnify() {
+  document.querySelectorAll('#cart-tbody img').forEach(img => {
+    img.style.cursor = 'zoom-in';
+    img.onmouseenter = function() {
+      this.style.transform = 'scale(3.5)';
+      this.style.transformOrigin = 'center center';
+      this.style.zIndex = '500';
+      this.style.position = 'relative';
+      this.style.boxShadow = '0 4px 20px rgba(0,0,0,.35)';
+    };
+    img.onmouseleave = function() {
+      this.style.transform = 'scale(1)';
+      this.style.zIndex = '';
+      this.style.position = '';
+      this.style.boxShadow = '';
+    };
+  });
+}
+
+// ══════════════════════════════════════════════
+// CANCEL ORDER (Reseller)
+// ══════════════════════════════════════════════
+async function cancelOrder(orderId) {
+  const o = ORDERS.find(x => x.id === orderId);
+  if (!o) return;
+  if (o.status !== 'pending') { showToast('Only pending orders can be cancelled', 'error'); return; }
+  if (!confirm('Cancel order ' + orderId + '? This cannot be undone.')) return;
+  try {
+    await sb.patch('orders', 'order_number=eq.' + orderId, { status: 'cancelled' }, SESSION.token);
+    o.status = 'cancelled';
+    closeModal('modal-order');
+    renderMyOrders('all');
+    renderDashboard();
+    showToast('Order ' + orderId + ' cancelled');
+  } catch(err) { showToast('Failed: ' + err.message, 'error'); }
+}
+
+// ══════════════════════════════════════════════
+// EDIT ORDER (Admin)
+// ══════════════════════════════════════════════
+function openEditOrder(orderId) {
+  const o = ORDERS.find(x => x.id === orderId);
+  if (!o) return;
+  document.getElementById('edit-order-id').value = orderId;
+  document.getElementById('edit-cust-name').value    = o.customer || '';
+  document.getElementById('edit-cust-phone').value   = o.phone    || '';
+  document.getElementById('edit-cust-address').value = o.address  || '';
+  document.getElementById('edit-cust-city').value    = o.city     || '';
+  document.getElementById('edit-cust-state').value   = o.state    || '';
+  document.getElementById('edit-cust-pin').value     = o.pin      || '';
+  document.getElementById('edit-order-status').value = o.status   || 'pending';
+  document.getElementById('edit-upi-txn').value      = o.upiTxn   || '';
+  document.getElementById('edit-price').value        = o.price    || '';
+  document.getElementById('edit-notes').value        = o.notes    || '';
+  closeModal('modal-order');
+  openModal('modal-edit-order');
+}
+
+async function saveEditOrder() {
+  const orderId = document.getElementById('edit-order-id').value;
+  const o = ORDERS.find(x => x.id === orderId);
+  if (!o) return;
+
+  const body = {
+    customer_name:    document.getElementById('edit-cust-name').value.trim(),
+    customer_phone:   document.getElementById('edit-cust-phone').value.trim(),
+    customer_address: document.getElementById('edit-cust-address').value.trim(),
+    customer_city:    document.getElementById('edit-cust-city').value.trim(),
+    customer_state:   document.getElementById('edit-cust-state').value.trim(),
+    customer_pin:     document.getElementById('edit-cust-pin').value.trim(),
+    status:           document.getElementById('edit-order-status').value,
+    upi_txn_id:       document.getElementById('edit-upi-txn').value.trim(),
+    total_price:      parseInt(document.getElementById('edit-price').value) || o.price,
+    notes:            document.getElementById('edit-notes').value.trim(),
+  };
+
+  const btn = document.querySelector('#modal-edit-order .btn-primary');
+  btn.textContent = 'Saving...'; btn.disabled = true;
+
+  try {
+    await sb.patch('orders', 'order_number=eq.' + orderId, body, SESSION.token);
+    // Update local cache
+    Object.assign(o, {
+      customer: body.customer_name, phone: body.customer_phone,
+      address: body.customer_address, city: body.customer_city,
+      state: body.customer_state, pin: body.customer_pin,
+      status: body.status, upiTxn: body.upi_txn_id,
+      price: body.total_price, notes: body.notes
+    });
+    closeModal('modal-edit-order');
+    renderAdminOrders();
+    renderAdminPending();
+    showToast('Order updated successfully');
+  } catch(err) { showToast('Failed: ' + err.message, 'error'); }
+  finally { btn.textContent = 'Save Changes'; btn.disabled = false; }
+}
+
+// ══════════════════════════════════════════════
+// RESELLER APPROVAL
+// ══════════════════════════════════════════════
+let resellerFilter = 'active';
+
+function filterResellers(filter, el) {
+  resellerFilter = filter;
+  document.querySelectorAll('#page-admin-resellers .tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  renderResellers();
+}
+
+async function approveReseller(email) {
+  try {
+    await sb.patch('profiles', 'email=eq.' + encodeURIComponent(email), { status: 'active' }, SESSION.token);
+    const r = RESELLERS.find(x => x.email === email);
+    if (r) r.status = 'active';
+    renderResellers();
+    showToast('Reseller approved — they can now log in');
+  } catch(err) { showToast('Failed: ' + err.message, 'error'); }
+}
+
+async function rejectReseller(email) {
+  if (!confirm('Reject and delete reseller request for ' + email + '?')) return;
+  try {
+    // Set status to suspended
+    await sb.patch('profiles', 'email=eq.' + encodeURIComponent(email), { status: 'suspended' }, SESSION.token);
+    const idx = RESELLERS.findIndex(x => x.email === email);
+    if (idx > -1) RESELLERS.splice(idx, 1);
+    renderResellers();
+    showToast('Reseller request rejected');
+  } catch(err) { showToast('Failed: ' + err.message, 'error'); }
 }
 
 // ══════════════════════════════════════════════
@@ -3914,15 +4369,15 @@ function toggleShipToSelf() {
   if (shipToSelfOn) {
     toggle.style.background = 'var(--ok)';
     knob.style.transform = 'translateX(18px)';
-    // Auto-fill from profile
-    var u = USERS[currentUser.email] || {};
+    // Auto-fill from currentUserProfile (Supabase)
+    var u = currentUserProfile || {};
     document.getElementById('cust-name').value    = u.name    || '';
     document.getElementById('cust-phone').value   = u.phone   || '';
     document.getElementById('cust-address').value = u.address || '';
     document.getElementById('cust-city').value    = u.city    || '';
     document.getElementById('cust-state').value   = u.state   || '';
     document.getElementById('cust-pin').value     = u.pin     || '';
-    if (!u.address) showToast('Add your address in My Profile first', 'error');
+    if (!u.address) showToast('Add your address in My Profile first — go to My Profile', 'error');
     else showToast('Address auto-filled from your profile');
   } else {
     toggle.style.background = 'var(--border)';
