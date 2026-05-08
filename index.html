@@ -2644,12 +2644,18 @@ async function loadOrders() {
 
 async function loadResellers() {
   try {
-    const rows = await sb.get('profiles', 'role=eq.reseller&select=*', SESSION && SESSION.token);
+    // Fetch ALL resellers regardless of status (admin needs to see pending too)
+    const rows = await sb.get('profiles', 'role=eq.reseller&select=*&order=created_at.desc', SESSION && SESSION.token);
+    console.log('loadResellers fetched:', rows.length, 'resellers');
     RESELLERS = rows.map(r => ({
       name: r.name, business: r.business, phone: r.phone,
-      city: r.city, email: r.email, status: r.status,
+      city: r.city, email: r.email, status: r.status || 'pending',
       orders: ORDERS.filter(o => o.resellerEmail === r.email).length
     }));
+    // Update pending badge
+    const pendingCount = RESELLERS.filter(r => r.status === 'pending').length;
+    const badge = document.getElementById('pending-resellers-badge');
+    if (badge) badge.textContent = pendingCount;
   } catch(e) { console.error('loadResellers:', e); }
 }
 
@@ -4094,7 +4100,7 @@ function filterResellers(filter, el) {
 
 async function approveReseller(email) {
   try {
-    await sb.patch('profiles', 'email=eq.' + encodeURIComponent(email), { status: 'active' }, SESSION.token);
+    await sb.patch('profiles', 'email=eq.' + email, { status: 'active' }, SESSION.token);
     const r = RESELLERS.find(x => x.email === email);
     if (r) r.status = 'active';
     renderResellers();
@@ -4103,10 +4109,9 @@ async function approveReseller(email) {
 }
 
 async function rejectReseller(email) {
-  if (!confirm('Reject and delete reseller request for ' + email + '?')) return;
+  if (!confirm('Reject reseller request for ' + email + '?')) return;
   try {
-    // Set status to suspended
-    await sb.patch('profiles', 'email=eq.' + encodeURIComponent(email), { status: 'suspended' }, SESSION.token);
+    await sb.patch('profiles', 'email=eq.' + email, { status: 'suspended' }, SESSION.token);
     const idx = RESELLERS.findIndex(x => x.email === email);
     if (idx > -1) RESELLERS.splice(idx, 1);
     renderResellers();
