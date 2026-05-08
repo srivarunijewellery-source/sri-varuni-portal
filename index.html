@@ -2285,6 +2285,24 @@
   </div>
 </div>
 
+<!-- Screenshot Viewer Overlay -->
+<div id="screenshot-viewer-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:16px;" onclick="closeScreenshotViewer()">
+  <div style="position:absolute;top:20px;right:20px;display:flex;gap:12px;align-items:center;">
+    <span id="screenshot-viewer-counter" style="color:rgba(255,255,255,.6);font-size:13px;"></span>
+    <a id="screenshot-download-btn" href="#" download target="_blank"
+      style="background:rgba(255,255,255,.15);color:#fff;padding:8px 16px;border-radius:8px;font-size:13px;text-decoration:none;display:flex;align-items:center;gap:6px;"
+      onclick="event.stopPropagation()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Download
+    </a>
+    <button onclick="closeScreenshotViewer()" style="background:rgba(255,255,255,.15);color:#fff;border:none;width:36px;height:36px;border-radius:8px;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;">&#215;</button>
+  </div>
+  <img id="screenshot-viewer-img" src="" alt="Payment screenshot"
+    style="max-width:90vw;max-height:80vh;object-fit:contain;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.5);"
+    onclick="event.stopPropagation()">
+  <div style="font-size:12px;color:rgba(255,255,255,.4);">Click anywhere outside to close</div>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast">
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
@@ -2311,8 +2329,7 @@ const sb = {
     return {
       'apikey': SUPABASE_KEY,
       'Authorization': 'Bearer ' + (token || SUPABASE_KEY),
-      'Content-Type': 'application/json',
-      'Prefer': 'return=representation'
+      'Content-Type': 'application/json'
     };
   },
   async get(table, params, token) {
@@ -2335,9 +2352,11 @@ const sb = {
   },
   async patch(table, params, body, token) {
     const url = SUPABASE_URL + '/rest/v1/' + table + '?' + params;
-    const r = await fetch(url, { method: 'PATCH', headers: this.authHeaders(token), body: JSON.stringify(body) });
+    const headers = { ...this.authHeaders(token), 'Prefer': 'return=minimal' };
+    const r = await fetch(url, { method: 'PATCH', headers, body: JSON.stringify(body) });
     if (!r.ok) throw new Error(await r.text());
-    return r.json();
+    const text = await r.text();
+    return text ? JSON.parse(text) : {};
   },
   async uploadFile(bucket, path, file, token) {
     const url = SUPABASE_URL + '/storage/v1/object/' + bucket + '/' + path;
@@ -2603,6 +2622,7 @@ async function loadOrders() {
       query += '&reseller_id=eq.' + (SESSION && SESSION.userId);
     }
     const rows = await sb.get('orders', query, SESSION && SESSION.token);
+    console.log('loadOrders fetched', rows.length, 'orders');
     ORDERS = rows.map(r => ({
       id: r.order_number, _uuid: r.id,
       sl: r.items && r.items[0] ? r.items[0].sl : '',
@@ -2679,7 +2699,9 @@ async function placeOrder() {
   if (btn) { btn.textContent = 'Placing order...'; btn.disabled = true; }
 
   try {
-    await sb.post('orders', orderBody, SESSION.token);
+    console.log('Placing order body:', JSON.stringify(orderBody, null, 2));
+    const result = await sb.post('orders', orderBody, SESSION.token);
+    console.log('Order placed result:', result);
     await loadOrders();
     const myCount = ORDERS.filter(o => o.resellerEmail === currentUser.email).length;
     const badge = document.getElementById('nav-order-count');
@@ -3305,7 +3327,9 @@ function viewOrder(orderId) {
     itemsSection +
     '<div class="info-row"><label>Total Amount</label><span style="font-weight:700;color:var(--purple-dark)">&#8377;' + o.price.toLocaleString() + '</span></div>' +
     '<div class="info-row"><label>Date</label><span>' + formatDate(o.date) + '</span></div>' +
-    '<div class="info-row"><label>UPI Txn ID</label><span style="font-family:monospace;font-size:12px">' + o.upiTxn + '</span></div>' +
+    '<div class="info-row"><label>UPI Txn ID</label><span style="font-family:monospace;font-size:12px">' + (o.upiTxn || '—') + '</span></div>' +
+    '<div class="info-row"><label>Payment</label><span class="badge ' + (o.paymentStatus === 'verified' ? 'badge-delivered' : 'badge-pending') + '">' + (o.paymentStatus === 'verified' ? '✓ Verified' : 'Pending') + '</span></div>' +
+    buildScreenshotSection(o) +
     '</div>' +
     '<div>' +
     '<p class="text-sm text-muted fw-600 mb-16" style="letter-spacing:1px;text-transform:uppercase">Ship To</p>' +
@@ -3833,6 +3857,62 @@ function applyLogoEverywhere(src) {
 
 
 
+
+function buildScreenshotSection(o) {
+  if (!o.screenshotUrl) return '';
+  const urls = o.screenshotUrl.split(',').map(u => u.trim()).filter(Boolean);
+  if (!urls.length) return '';
+  const thumbs = urls.map((url, i) => 
+    '<div style="position:relative;cursor:zoom-in;" onclick="openScreenshotViewer(\''+url+'\', '+i+', '+urls.length+')">' +
+    '<img src="'+url.trim()+'" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:2px solid var(--border);display:block;" ' +
+    'onerror="this.style.display=\'none\'">' +
+    '<div style="position:absolute;inset:0;background:rgba(0,0,0,.3);border-radius:8px;display:flex;align-items:center;justify-content:center;opacity:0;transition:.15s;" '+
+    'onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=0">'+
+    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>' +
+    '</div></div>'
+  ).join('');
+  return '<div style="margin-top:12px;">' +
+    '<div style="font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--tl);margin-bottom:8px;">Payment Screenshots ('+urls.length+')</div>' +
+    '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;">' + thumbs + '</div>' +
+    '<a href="'+urls[0].trim()+'" download target="_blank" style="font-size:12px;color:var(--pl);text-decoration:none;display:inline-flex;align-items:center;gap:5px;">' +
+    '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>' +
+    'Download screenshot' + (urls.length > 1 ? 's ('+urls.length+')' : '') + '</a></div>';
+}
+
+let screenshotViewerUrls = [];
+let screenshotViewerIdx = 0;
+
+function openScreenshotViewer(url, idx, total) {
+  // url is a single URL string, total is total count from the order
+  screenshotViewerUrls = [url];
+  screenshotViewerIdx = 0;
+  const overlay = document.getElementById('screenshot-viewer-overlay');
+  if (!overlay) return;
+  const img = document.getElementById('screenshot-viewer-img');
+  const dl  = document.getElementById('screenshot-download-btn');
+  const counter = document.getElementById('screenshot-viewer-counter');
+  if (img) img.src = url;
+  if (dl)  { dl.href = url; }
+  if (counter) counter.textContent = total > 1 ? (idx + 1) + ' / ' + total : '';
+  overlay.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function updateScreenshotViewer() {
+  const img = document.getElementById('screenshot-viewer-img');
+  const counter = document.getElementById('screenshot-viewer-counter');
+  if (img) img.src = screenshotViewerUrls[screenshotViewerIdx] || screenshotViewerUrls[0];
+  if (counter) counter.textContent = screenshotViewerUrls.length > 1 
+    ? (screenshotViewerIdx + 1) + ' / ' + screenshotViewerUrls.length 
+    : '';
+}
+
+function closeScreenshotViewer() {
+  const overlay = document.getElementById('screenshot-viewer-overlay');
+  if (overlay) overlay.style.display = 'none';
+  document.body.style.overflow = '';
+}
+
 // ══════════════════════════════════════════════
 // MULTI-SCREENSHOT UPLOAD
 // ══════════════════════════════════════════════
@@ -4094,6 +4174,10 @@ function setProductImageUI(imgSrc) {
 // ══════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeScreenshotViewer();
+});
+
 document.addEventListener('DOMContentLoaded', async () => {
   // Set date
   const dateEl = document.getElementById('topbar-date');
