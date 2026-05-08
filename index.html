@@ -1116,6 +1116,35 @@
 <!-- ══════════════════════════════════════════════
      SCREEN: FORGOT PASSWORD
 ══════════════════════════════════════════════ -->
+<div id="screen-signup-success" class="screen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div id="auth-logo-dynamic" style="margin-bottom:4px;">
+        <div class="brand-icon" id="auth-icon-default">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#c9a96e" stroke-width="1.5">
+            <path d="M12 2L8 7H2l4 4-2 7 8-4 8 4-2-7 4-4h-6L12 2z"/>
+          </svg>
+        </div>
+        <img id="auth-logo-img" src="" alt="Sri Varuni" style="display:none;max-height:56px;max-width:200px;object-fit:contain;">
+      </div>
+      <h1 style="font-family:Georgia,serif;font-size:26px;font-weight:600;color:var(--purple-dark);">Sri Varuni</h1>
+      <p>Partner Portal</p>
+    </div>
+    <div style="text-align:center;margin-bottom:24px;">
+      <div style="width:64px;height:64px;background:var(--okbg);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <h2 style="font-family:Georgia,serif;font-size:22px;color:var(--td);margin-bottom:8px;">Request Submitted!</h2>
+      <p style="font-size:13px;color:var(--tl);line-height:1.6;">Your reseller account request has been received. Our team will review and activate your account shortly.</p>
+    </div>
+    <div style="background:linear-gradient(135deg,#faf8fc,#f5f0f9);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:20px;">
+      <div style="font-size:12px;color:var(--tl);margin-bottom:4px;">Need help? Contact us</div>
+      <a href="tel:+919247551711" style="font-size:18px;font-weight:700;color:var(--pd);text-decoration:none;font-family:Georgia,serif;">+91 92475 51711</a>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="showScreen('login')">Back to Sign In</button>
+  </div>
+</div>
+
 <div id="screen-forgot" class="screen">
   <div class="auth-card">
     <div class="auth-logo">
@@ -2294,9 +2323,15 @@ const sb = {
   },
   async post(table, body, token) {
     const url = SUPABASE_URL + '/rest/v1/' + table;
-    const r = await fetch(url, { method: 'POST', headers: this.authHeaders(token), body: JSON.stringify(body) });
-    if (!r.ok) throw new Error(await r.text());
-    return r.json();
+    const headers = { ...this.authHeaders(token), 'Prefer': 'return=minimal' };
+    const r = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
+    // 201 Created and 200 OK are both success for Supabase inserts
+    if (r.status !== 200 && r.status !== 201) {
+      const errText = await r.text();
+      throw new Error(errText);
+    }
+    const text = await r.text();
+    return text ? JSON.parse(text) : {};
   },
   async patch(table, params, body, token) {
     const url = SUPABASE_URL + '/rest/v1/' + table + '?' + params;
@@ -2332,7 +2367,10 @@ const sb = {
       body: JSON.stringify({ email, password, data: meta })
     });
     const data = await r.json();
-    if (!r.ok) throw new Error(data.error_description || data.msg || 'Signup failed');
+    // Supabase returns 200 for signup — error is in data.error or data.msg
+    if (data.error || data.error_description || (data.msg && !data.id && !data.user)) {
+      throw new Error(data.error_description || data.error || data.msg || 'Signup failed');
+    }
     return data;
   },
   async resetPassword(email) {
@@ -2477,9 +2515,9 @@ async function handleSignup() {
   btn.textContent = 'Creating account...'; btn.disabled = true;
 
   try {
-    await sb.signUp(email, pass, { name, phone, business, city, role: 'reseller', status: 'pending' });
-    showToast('Request submitted! Admin will review and send your login credentials.');
-    setTimeout(() => showScreen('login'), 3000);
+    const result = await sb.signUp(email, pass, { name, phone, business, city, role: 'reseller', status: 'pending' });
+    // Success regardless of email confirmation setting
+    showScreen('signup-success');
   } catch(err) {
     showToast(err.message || 'Signup failed', 'error');
   } finally {
@@ -2628,7 +2666,7 @@ async function placeOrder() {
     customer_city:    document.getElementById('cust-city').value,
     customer_state:   document.getElementById('cust-state').value,
     customer_pin:     document.getElementById('cust-pin').value,
-    items:            orderCart,
+    items:            JSON.parse(JSON.stringify(orderCart)),
     total_price:      total,
     upi_txn_id:       upiTxn,
     screenshot_url:   screenshotUrl,
@@ -2652,7 +2690,11 @@ async function placeOrder() {
     goToStep(1);
     setTimeout(() => showPage('my-orders'), 1500);
   } catch(err) {
-    showToast('Failed to place order: ' + (err.message || 'Please try again'), 'error');
+    console.error('placeOrder error:', err);
+    let msg = err.message || 'Please try again';
+    // Parse Supabase error if JSON
+    try { const parsed = JSON.parse(msg); msg = parsed.message || parsed.hint || msg; } catch(e) {}
+    showToast('Failed to place order: ' + msg, 'error');
   } finally {
     if (btn) { btn.textContent = '✓ Place Order'; btn.disabled = false; }
   }
@@ -2890,7 +2932,9 @@ async function loadBrandLogo() {
 // ══════════════════════════════════════════════
 function showScreen(name) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById('screen-' + name).classList.add('active');
+  const el = document.getElementById('screen-' + name);
+  if (el) el.classList.add('active');
+  else console.warn('Screen not found:', name);
 }
 
 function showPage(name) {
