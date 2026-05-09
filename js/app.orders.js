@@ -1,11 +1,4 @@
-// ── Global order state ──────────────────────────────────────────────────────
-var orderCart            = [];
-var uploadedScreenshots  = [];
-var shipToSelfOn         = false;
-var applyCreditToOrder   = false;
-var resellerCreditBalance = 0;
-var window_placingOrder  = false;
-var currentTrackingOrderId = null;
+// app_orders.js — NO var/let declarations for globals (all declared in app_config.js)
 
 // ── Cart helpers ─────────────────────────────────────────────────────────────
 function cartTotal() {
@@ -39,12 +32,12 @@ function renderCart() {
       '<td style="padding:10px 12px;border-bottom:1px solid #f0eaf7;font-family:monospace;font-size:11px;color:#5a3578;">' + item.sl + '</td>' +
       '<td style="padding:10px 12px;border-bottom:1px solid #f0eaf7;">' +
         '<div style="font-size:13px;font-weight:600;color:#1a0f2e;">' + item.name + '</div>' +
-        '<div style="font-size:11px;color:#8b7aa0;">' + (item.details||'') + '</div>' +
+        '<div style="font-size:11px;color:#8b7aa0;">' + (item.details || '') + '</div>' +
       '</td>' +
       '<td style="padding:10px 12px;border-bottom:1px solid #f0eaf7;text-align:center;">' +
         '<button onclick="cartQty('+i+',-1)" style="border:1px solid #e8d5f0;background:#fff;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:14px;">−</button> ' +
         '<strong style="color:#1a0f2e;">' + item.qty + '</strong> ' +
-        '<button onclick="cartQty('+i+',1)"  style="border:1px solid #e8d5f0;background:#fff;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:14px;">+</button>' +
+        '<button onclick="cartQty('+i+',1)" style="border:1px solid #e8d5f0;background:#fff;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:14px;">+</button>' +
       '</td>' +
       '<td style="padding:10px 12px;border-bottom:1px solid #f0eaf7;text-align:right;color:#4a3560;">₹' + item.price.toLocaleString() + '</td>' +
       '<td style="padding:10px 12px;border-bottom:1px solid #f0eaf7;text-align:right;font-weight:700;color:#2d1b3d;">₹' + lt.toLocaleString() + '</td>' +
@@ -65,9 +58,10 @@ function removeCartItem(i) {
   renderCart();
 }
 
-// ── Product lookup & add ─────────────────────────────────────────────────────
+// ── Product lookup ────────────────────────────────────────────────────────────
 function quickFill(sl) {
-  document.getElementById('product-sl').value = sl;
+  var inp = document.getElementById('product-sl');
+  if (inp) inp.value = sl;
   lookupAndAdd();
 }
 
@@ -76,16 +70,15 @@ function lookupAndAdd() {
   var qty = parseInt(document.getElementById('add-qty').value) || 1;
   if (!sl) { showToast('Enter a product SL number', 'error'); return; }
 
-  // If PRODUCTS is empty, catalog may not have loaded yet — try re-sync
+  // Re-sync in case catalog loaded after page init
   if (Object.keys(PRODUCTS).length === 0 && Object.keys(CATALOG).length > 0) {
     syncCatalogToProducts();
   }
 
   var prod = PRODUCTS[sl];
   if (!prod) {
-    // Give a more helpful message: tell them if catalog is empty vs product not found
     if (Object.keys(PRODUCTS).length === 0) {
-      showToast('Catalog is still loading — please wait a moment and try again', 'error');
+      showToast('Catalog still loading — try again in a moment', 'error');
     } else {
       showToast('Product not found: ' + sl, 'error');
     }
@@ -96,7 +89,7 @@ function lookupAndAdd() {
     ex.qty += qty;
     showToast('Updated qty for ' + prod.name);
   } else {
-    orderCart.push({ sl: sl, name: prod.name, details: prod.details||'', price: prod.price, qty: qty, image: prod.image||null });
+    orderCart.push({ sl: sl, name: prod.name, details: prod.details || '', price: prod.price, qty: qty, image: prod.image || null });
     showToast('Added: ' + prod.name);
   }
   document.getElementById('product-sl').value = '';
@@ -139,7 +132,7 @@ function removeScreenshot(i) {
   renderScreenshotGrid();
 }
 
-// ── Ship-to-self toggle ───────────────────────────────────────────────────────
+// ── Ship-to-self ──────────────────────────────────────────────────────────────
 function toggleShipToSelf() {
   shipToSelfOn = !shipToSelfOn;
   var toggle = document.getElementById('ship-self-toggle');
@@ -173,9 +166,9 @@ function toggleApplyCredit() {
   var label  = document.getElementById('credit-apply-label');
   var row    = document.getElementById('credit-apply-amount-row');
   if (toggle) { toggle.style.background = applyCreditToOrder ? '#059669' : '#d1fae5'; toggle.style.borderColor = applyCreditToOrder ? '#059669' : '#6ee7b7'; }
-  if (knob)   knob.style.transform  = applyCreditToOrder ? 'translateX(20px)' : 'translateX(0)';
-  if (label)  label.textContent     = applyCreditToOrder ? 'Applied ✓' : 'Apply';
-  if (row)    row.style.display     = applyCreditToOrder ? 'flex' : 'none';
+  if (knob)  knob.style.transform   = applyCreditToOrder ? 'translateX(20px)' : 'translateX(0)';
+  if (label) label.textContent      = applyCreditToOrder ? 'Applied ✓' : 'Apply';
+  if (row)   row.style.display      = applyCreditToOrder ? 'flex' : 'none';
   if (applyCreditToOrder) {
     var inp = document.getElementById('credit-apply-input');
     if (inp) inp.value = Math.min(resellerCreditBalance || 0, cartTotal());
@@ -184,78 +177,66 @@ function toggleApplyCredit() {
 }
 
 function updatePaymentAmountDisplay() {
-  var total      = cartTotal();
-  var balance    = (typeof resellerCreditBalance === 'number' && !isNaN(resellerCreditBalance)) ? resellerCreditBalance : 0;
-  var inp        = document.getElementById('credit-apply-input');
-  var creditUsed = applyCreditToOrder ? Math.min(parseInt((inp && inp.value) || 0) || 0, balance, total) : 0;
-  var payable    = Math.max(0, total - creditUsed);
-  var pamount    = document.getElementById('payment-amount');
-  if (pamount) {
-    if (creditUsed > 0) {
-      pamount.innerHTML = '₹' + payable.toLocaleString() +
-        ' <span style="font-size:13px;font-weight:400;color:#059669;">(-₹' + creditUsed.toLocaleString() + ' credit applied)</span>';
-    } else {
-      pamount.textContent = '₹' + payable.toLocaleString();
-    }
+  var total   = cartTotal();
+  var balance = (typeof resellerCreditBalance === 'number' && !isNaN(resellerCreditBalance)) ? resellerCreditBalance : 0;
+  var inp     = document.getElementById('credit-apply-input');
+  var used    = applyCreditToOrder ? Math.min(parseInt((inp && inp.value) || 0) || 0, balance, total) : 0;
+  var payable = Math.max(0, total - used);
+  var pamount = document.getElementById('payment-amount');
+  if (!pamount) return;
+  if (used > 0) {
+    pamount.innerHTML = '₹' + payable.toLocaleString() +
+      ' <span style="font-size:13px;font-weight:400;color:#059669;">(-₹' + used.toLocaleString() + ' credit applied)</span>';
+  } else {
+    pamount.textContent = '₹' + payable.toLocaleString();
   }
 }
 
 // ── Step navigation ───────────────────────────────────────────────────────────
 function goToStep(step) {
   try {
-    // Step 2 guard: need at least one product
     if (step === 2 && orderCart.length === 0) {
-      showToast('Add at least one product first', 'error');
-      return;
+      showToast('Add at least one product first', 'error'); return;
     }
 
-    // Step 3 guard: validate customer fields
     if (step === 3) {
-      var custName    = document.getElementById('cust-name');
-      var custAddress = document.getElementById('cust-address');
-      var custPin     = document.getElementById('cust-pin');
-      if (!custName || !custName.value.trim())       { showToast('Enter customer name', 'error'); return; }
-      if (!custAddress || !custAddress.value.trim()) { showToast('Enter delivery address', 'error'); return; }
-      if (!custPin || !custPin.value.trim())         { showToast('Enter pincode', 'error'); return; }
-
-      // Update payment display — wrapped so credit errors never block navigation
+      var n = document.getElementById('cust-name');
+      var a = document.getElementById('cust-address');
+      var p = document.getElementById('cust-pin');
+      if (!n || !n.value.trim()) { showToast('Enter customer name', 'error'); return; }
+      if (!a || !a.value.trim()) { showToast('Enter delivery address', 'error'); return; }
+      if (!p || !p.value.trim()) { showToast('Enter pincode', 'error'); return; }
       try {
         var total   = cartTotal();
         var pamount = document.getElementById('payment-amount');
         if (pamount) pamount.textContent = '₹' + total.toLocaleString();
-
         var balance       = (typeof resellerCreditBalance === 'number' && !isNaN(resellerCreditBalance)) ? resellerCreditBalance : 0;
         var creditSection = document.getElementById('credit-apply-section');
         if (creditSection) {
           if (balance > 0) {
             creditSection.style.display = 'block';
-            var creditAvail = document.getElementById('credit-avail-amount');
-            var creditMax   = document.getElementById('credit-apply-max');
-            if (creditAvail) creditAvail.textContent = '₹' + balance.toLocaleString();
-            if (creditMax)   creditMax.textContent   = Math.min(balance, total).toLocaleString();
-            var cinp = document.getElementById('credit-apply-input');
-            if (cinp) cinp.max = Math.min(balance, total);
+            var ca = document.getElementById('credit-avail-amount');
+            var cm = document.getElementById('credit-apply-max');
+            if (ca) ca.textContent = '₹' + balance.toLocaleString();
+            if (cm) cm.textContent = Math.min(balance, total).toLocaleString();
+            var ci = document.getElementById('credit-apply-input');
+            if (ci) ci.max = Math.min(balance, total);
           } else {
             creditSection.style.display = 'none';
           }
         }
         updatePaymentAmountDisplay();
-      } catch(creditErr) {
-        console.warn('Credit display error (non-fatal):', creditErr);
-      }
+      } catch(e) { console.warn('Credit section error (non-fatal):', e); }
     }
 
-    // Step 4 guard: require screenshot + UPI txn
     if (step === 4) {
       if (!uploadedScreenshots || uploadedScreenshots.length === 0) {
         showToast('Please upload at least one payment screenshot', 'error'); return;
       }
-      var upiTxn = document.getElementById('upi-txn');
-      if (!upiTxn || !upiTxn.value.trim()) {
+      var txn = document.getElementById('upi-txn');
+      if (!txn || !txn.value.trim()) {
         showToast('Please enter the UPI Transaction ID', 'error'); return;
       }
-
-      // Populate confirm screen
       try {
         var total2    = cartTotal();
         var confItems = document.getElementById('conf-items-list');
@@ -270,18 +251,16 @@ function goToStep(step) {
         }
         var set = function(id, val) { var el = document.getElementById(id); if (el) el.textContent = val || '—'; };
         set('conf-amount', '₹' + total2.toLocaleString());
-        set('conf-cname',  (document.getElementById('cust-name')?.value    || ''));
-        set('conf-cphone', (document.getElementById('cust-phone')?.value   || ''));
+        set('conf-cname',  document.getElementById('cust-name')?.value  || '');
+        set('conf-cphone', document.getElementById('cust-phone')?.value || '');
         set('conf-caddr',  (document.getElementById('cust-address')?.value || '') + ', ' +
                            (document.getElementById('cust-city')?.value    || '') + ' - ' +
                            (document.getElementById('cust-state')?.value   || ''));
-        set('conf-cpin',   (document.getElementById('cust-pin')?.value     || ''));
-      } catch(confErr) {
-        console.warn('Confirm screen error (non-fatal):', confErr);
-      }
+        set('conf-cpin',   document.getElementById('cust-pin')?.value || '');
+      } catch(e) { console.warn('Confirm screen error (non-fatal):', e); }
     }
 
-    // Switch step visibility
+    // Switch visible step
     for (var i = 1; i <= 4; i++) {
       var el  = document.getElementById('order-step-' + i);
       var dot = document.getElementById('step-' + i);
@@ -292,14 +271,12 @@ function goToStep(step) {
         if (num) num.textContent = i < step ? '✓' : String(i);
       }
     }
-
-    // Scroll to top of order steps
-    var orderSteps = document.getElementById('order-steps');
-    if (orderSteps) orderSteps.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    var steps = document.getElementById('order-steps');
+    if (steps) steps.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   } catch(err) {
     console.error('goToStep error:', err);
-    showToast('Navigation error: ' + err.message, 'error');
+    showToast('Error: ' + err.message, 'error');
   }
 }
 
@@ -323,9 +300,9 @@ async function placeOrder() {
       }
       if (urls.length) screenshotUrl = urls.join(',');
     }
-    var balance    = (typeof resellerCreditBalance === 'number' && !isNaN(resellerCreditBalance)) ? resellerCreditBalance : 0;
-    var cinpEl     = document.getElementById('credit-apply-input');
-    var creditUsed = applyCreditToOrder ? Math.min(parseInt((cinpEl && cinpEl.value) || 0) || 0, balance, cartTotal()) : 0;
+    var balance = (typeof resellerCreditBalance === 'number' && !isNaN(resellerCreditBalance)) ? resellerCreditBalance : 0;
+    var cinp    = document.getElementById('credit-apply-input');
+    var used    = applyCreditToOrder ? Math.min(parseInt((cinp && cinp.value) || 0) || 0, balance, cartTotal()) : 0;
 
     var body = {
       reseller_id:      SESSION.userId,
@@ -344,40 +321,39 @@ async function placeOrder() {
       notes:            (document.getElementById('order-notes')?.value || '').trim(),
       status:           'pending',
       payment_status:   'pending',
-      credit_applied:   creditUsed
+      credit_applied:   used
     };
     await sb.post('orders', body, SESSION.token);
     await loadOrders();
 
-    // Reset everything
+    // Reset state
     orderCart = [];
     uploadedScreenshots = [];
     shipToSelfOn = false;
+    applyCreditToOrder = false;
     ['cust-name','cust-phone','cust-address','cust-city','cust-state','cust-pin','upi-txn','order-notes'].forEach(function(id) {
       var el = document.getElementById(id); if (el) el.value = '';
     });
     var t = document.getElementById('ship-self-toggle');
     var k = document.getElementById('ship-self-knob');
-    if (t) t.style.background = '#e8d5f0';
-    if (k) k.style.transform = 'translateX(0)';
+    if (t) t.style.background = 'var(--border)';
+    if (k) k.style.transform  = 'translateX(0)';
     renderCart();
     renderScreenshotGrid();
     var badge = document.getElementById('nav-order-count');
     if (badge) badge.textContent = ORDERS.filter(function(o) { return o.resellerEmail === currentUser.email; }).length;
 
-    // Deduct credit if applied
-    if (applyCreditToOrder && creditUsed > 0) {
+    if (used > 0) {
       sb.post('credits', {
         reseller_id: SESSION.userId,
-        amount: -creditUsed,
-        note: 'Credit applied to order ' + (ORDERS[0]?.id || ''),
-        issued_by: SESSION.userId
+        amount:      -used,
+        note:        'Credit applied to order ' + (ORDERS[0]?.id || ''),
+        issued_by:   SESSION.userId
       }, SESSION.token).catch(function(e) { console.warn('Credit deduction failed:', e); });
-      resellerCreditBalance = Math.max(0, (resellerCreditBalance || 0) - creditUsed);
-      var statEl = document.getElementById('stat-credits');
-      if (statEl) statEl.textContent = '₹' + resellerCreditBalance.toLocaleString();
+      resellerCreditBalance = Math.max(0, balance - used);
+      var sc = document.getElementById('stat-credits');
+      if (sc) sc.textContent = '₹' + resellerCreditBalance.toLocaleString();
     }
-    applyCreditToOrder = false;
 
     showToast('Order placed! Awaiting payment verification.');
     goToStep(1);
