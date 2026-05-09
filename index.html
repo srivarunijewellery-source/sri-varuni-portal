@@ -1433,7 +1433,7 @@
                   <thead>
                     <tr>
                       <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:var(--text-light); background:#faf8fc; border-bottom:1px solid var(--border); width:52px;"></th>
-                    <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:var(--text-light); background:#faf8fc; border-bottom:1px solid var(--border);">SL No</th>
+                      <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:var(--text-light); background:#faf8fc; border-bottom:1px solid var(--border);">SL No</th>
                       <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:var(--text-light); background:#faf8fc; border-bottom:1px solid var(--border);">Product</th>
                       <th style="padding:10px 14px; text-align:center; font-size:11px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:var(--text-light); background:#faf8fc; border-bottom:1px solid var(--border);">Qty</th>
                       <th style="padding:10px 14px; text-align:right; font-size:11px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:var(--text-light); background:#faf8fc; border-bottom:1px solid var(--border);">Unit</th>
@@ -1444,7 +1444,7 @@
                   <tbody id="cart-tbody"></tbody>
                   <tfoot>
                     <tr>
-                      <td colspan="4" style="padding:12px 14px; text-align:right; font-size:13px; font-weight:600; color:var(--text-mid); border-top:2px solid var(--border);">Order Total</td>
+                      <td colspan="5" style="padding:12px 14px; text-align:right; font-size:13px; font-weight:600; color:var(--text-mid); border-top:2px solid var(--border);">Order Total</td>
                       <td style="padding:12px 14px; text-align:right; font-size:16px; font-weight:700; color:var(--purple-dark); border-top:2px solid var(--border);" id="cart-total">₹0</td>
                       <td style="border-top:2px solid var(--border);"></td>
                     </tr>
@@ -2746,87 +2746,6 @@ async function loadResellers() {
 // ══════════════════════════════════════════════
 // ORDER PLACEMENT (Supabase)
 // ══════════════════════════════════════════════
-async function placeOrder() {
-  if (window._placingOrder) { showToast('Please wait...'); return; }
-  window._placingOrder = true;
-
-  const total  = cartTotal();
-  const upiTxn = document.getElementById('upi-txn').value.trim() || '';
-  const notes  = document.getElementById('order-notes').value.trim() || '';
-  const btn    = document.querySelector('#order-step-4 .btn-primary');
-  if (btn) { btn.textContent = 'Placing...'; btn.disabled = true; }
-
-  try {
-    // Upload screenshots
-    let screenshotUrl = null;
-    if (uploadedScreenshots.length > 0) {
-      const urls = [];
-      for (const ss of uploadedScreenshots) {
-        try {
-          const blob = await (await fetch(ss.dataUrl)).blob();
-          const path = SESSION.userId + '/' + Date.now() + '_' + ss.name;
-          const url  = await sb.uploadFile('screenshots', path, blob, SESSION.token);
-          urls.push(url);
-        } catch(ex) { console.warn('Screenshot upload failed:', ex); }
-      }
-      if (urls.length) screenshotUrl = urls.join(',');
-    }
-
-    const orderBody = {
-      reseller_id:      SESSION.userId,
-      reseller_name:    currentUser.name,
-      reseller_email:   currentUser.email,
-      customer_name:    document.getElementById('cust-name').value,
-      customer_phone:   document.getElementById('cust-phone').value,
-      customer_address: document.getElementById('cust-address').value,
-      customer_city:    document.getElementById('cust-city').value,
-      customer_state:   document.getElementById('cust-state').value,
-      customer_pin:     document.getElementById('cust-pin').value,
-      items:            JSON.parse(JSON.stringify(orderCart)),
-      total_price:      total,
-      upi_txn_id:       upiTxn,
-      screenshot_url:   screenshotUrl,
-      notes:            notes,
-      status:           'pending',
-      payment_status:   'pending'
-    };
-
-    await sb.post('orders', orderBody, SESSION.token);
-    await loadOrders();
-
-    // Reset form
-    orderCart = [];
-    uploadedScreenshots = [];
-    renderCart();
-    renderScreenshotGrid();
-    shipToSelfOn = false;
-    ['cust-name','cust-phone','cust-address','cust-city','cust-state','cust-pin','upi-txn','order-notes'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.value = '';
-    });
-    const toggle = document.getElementById('ship-self-toggle');
-    const knob   = document.getElementById('ship-self-knob');
-    if (toggle) toggle.style.background = 'var(--border)';
-    if (knob)   knob.style.transform = 'translateX(0)';
-
-    // Update badge
-    const myCount = ORDERS.filter(o => o.resellerEmail === currentUser.email).length;
-    const badge = document.getElementById('nav-order-count');
-    if (badge) badge.textContent = myCount;
-
-    showToast('Order placed! We will verify payment shortly.');
-    goToStep(1);
-    setTimeout(() => showPage('my-orders'), 1200);
-  } catch(err) {
-    console.error('placeOrder error:', err);
-    let msg = err.message || 'Please try again';
-    try { const p = JSON.parse(msg); msg = p.message || p.hint || msg; } catch(ex) {}
-    showToast('Failed: ' + msg, 'error');
-  } finally {
-    window._placingOrder = false;
-    if (btn) { btn.textContent = '✓ Place Order'; btn.disabled = false; }
-  }
-}
 
 
 
@@ -3218,6 +3137,7 @@ function showPage(name) {
   if (name === 'admin-dashboard') renderAdminPending();
   if (name === 'admin-catalog') renderCatalog();
   if (name === 'place-order') {
+    window._placingOrder = false;
     orderCart = [];
     uploadedScreenshots = [];
     renderScreenshotGrid();
@@ -3319,252 +3239,242 @@ function renderDashboard() {
   `).join('') || '<tr><td colspan="7"><div class="empty-state"><p>No orders yet. Place your first order!</p></div></td></tr>';
 }
 
+
 // ══════════════════════════════════════════════
-// ORDER FLOW — MULTI-ITEM CART
+// ORDER FLOW — CLEAN REWRITE
 // ══════════════════════════════════════════════
-let orderCart = []; // [{sl, name, details, price, qty}]
+let orderCart = [];
+let uploadedScreenshots = [];
+let shipToSelfOn = false;
+let window_placingOrder = false; // use var instead of window prop
+
+var PRODUCTS = {
+  'SV-2024-001': { name: 'Antique Gold Necklace Set', details: 'Temple jewellery · Gold plated', price: 850, gst: 3, image: null },
+  'SV-2024-002': { name: 'Pearl Drop Earrings',        details: 'Fresh water pearls · Silver tone', price: 320, gst: 3, image: null },
+  'SV-2024-003': { name: 'Kundan Bangles Set (6)',      details: 'Kundan work · Size 2.6',           price: 680, gst: 3, image: null },
+  'SV-2024-004': { name: 'Oxidised Silver Jhumkas',    details: 'Oxidised finish · Medium size',    price: 420, gst: 3, image: null },
+  'SV-2024-005': { name: 'Bridal Maang Tikka',         details: 'Red & gold · Heavy work',          price: 1200, gst: 3, image: null },
+};
+
 
 function quickFill(sl) {
   document.getElementById('product-sl').value = sl;
-  document.getElementById('product-sl').focus();
+  lookupAndAdd();
 }
 
 function lookupAndAdd() {
-  const raw = document.getElementById('product-sl').value.trim();
-  const sl = raw.toUpperCase().replace(/\s+/g, '');
+  const sl  = (document.getElementById('product-sl').value || '').trim().toUpperCase();
   const qty = parseInt(document.getElementById('add-qty').value) || 1;
   if (!sl) { showToast('Enter a product SL number', 'error'); return; }
   const prod = PRODUCTS[sl];
-  if (!prod) { showToast('Product not found. Try SV-2024-001 to SV-2024-005', 'error'); return; }
-
-  // If already in cart, just increment qty
-  const existing = orderCart.find(i => i.sl === sl);
-  if (existing) {
-    existing.qty += qty;
-    showToast(`Updated qty for ${prod.name}`);
-  } else {
-    orderCart.push({ sl, name: prod.name, details: prod.details, price: prod.price, qty, image: prod.image || null });
-    showToast(`Added: ${prod.name}`);
-  }
-
-  // Reset add-row inputs
+  if (!prod) { showToast('Product not found: ' + sl, 'error'); return; }
+  const ex = orderCart.find(i => i.sl === sl);
+  if (ex) { ex.qty += qty; showToast('Updated qty for ' + prod.name); }
+  else { orderCart.push({ sl, name: prod.name, details: prod.details||'', price: prod.price, qty, image: prod.image||null }); showToast('Added: ' + prod.name); }
   document.getElementById('product-sl').value = '';
   document.getElementById('add-qty').value = '1';
   renderCart();
 }
 
 function renderCart() {
-  const empty   = document.getElementById('cart-empty');
-  const wrap    = document.getElementById('cart-table-wrap');
-  const tbody   = document.getElementById('cart-tbody');
-  const totalEl = document.getElementById('cart-total');
+  const empty = document.getElementById('cart-empty');
+  const wrap  = document.getElementById('cart-table-wrap');
+  const tbody = document.getElementById('cart-tbody');
+  const tot   = document.getElementById('cart-total');
   if (!empty || !wrap || !tbody) return;
-
   if (orderCart.length === 0) {
     empty.style.display = 'block';
     wrap.style.display  = 'none';
-    if (totalEl) totalEl.textContent = '₹0';
+    if (tot) tot.textContent = '₹0';
     return;
   }
   empty.style.display = 'none';
   wrap.style.display  = 'block';
-
   let total = 0;
-  tbody.innerHTML = orderCart.map((item, idx) => {
-    const lineTotal = item.price * item.qty;
-    total += lineTotal;
-    const img = item.image
-      ? '<img src="' + item.image + '" style="width:40px;height:40px;object-fit:cover;border-radius:6px;display:block;">'
-      : '<div style="width:40px;height:40px;border-radius:6px;background:#3d2456;display:flex;align-items:center;justify-content:center;"><svg width=14 height=14 viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#c9a96e\" stroke-width=\"1.5\"><path d=\"M12 2L8 7H2l4 4-2 7 8-4 8 4-2-7 4-4h-6L12 2z\"/></svg></div>';
+  tbody.innerHTML = orderCart.map((item, i) => {
+    const lt = item.price * item.qty;
+    total += lt;
     return '<tr>' +
-      '<td style="padding:10px 12px;border-bottom:1px solid #f0eaf7;width:48px;">' + img + '</td>' +
+      '<td style="padding:10px 12px;border-bottom:1px solid #f0eaf7;width:52px;">' +
+        (item.image ? '<img src="'+item.image+'" style="width:40px;height:40px;object-fit:cover;border-radius:6px;">' :
+        '<div style="width:40px;height:40px;border-radius:6px;background:#3d2456;display:flex;align-items:center;justify-content:center;color:#c9a96e;font-size:18px;">◆</div>') +
+      '</td>' +
       '<td style="padding:10px 12px;border-bottom:1px solid #f0eaf7;font-family:monospace;font-size:11px;color:#5a3578;">' + item.sl + '</td>' +
       '<td style="padding:10px 12px;border-bottom:1px solid #f0eaf7;">' +
         '<div style="font-size:13px;font-weight:600;color:#1a0f2e;">' + item.name + '</div>' +
-        '<div style="font-size:11px;color:#8b7aa0;margin-top:2px;">' + item.details + '</div>' +
+        '<div style="font-size:11px;color:#8b7aa0;">' + item.details + '</div>' +
       '</td>' +
       '<td style="padding:10px 12px;border-bottom:1px solid #f0eaf7;text-align:center;">' +
-        '<div style="display:inline-flex;align-items:center;gap:6px;border:1px solid #e8d5f0;border-radius:6px;padding:2px 8px;">' +
-          '<button onclick="cartQty(' + idx + ',-1)" style="border:none;background:none;cursor:pointer;color:#8b7aa0;font-size:16px;line-height:1;padding:0;">−</button>' +
-          '<span style="font-size:13px;font-weight:600;color:#1a0f2e;min-width:20px;text-align:center;">' + item.qty + '</span>' +
-          '<button onclick="cartQty(' + idx + ',1)"  style="border:none;background:none;cursor:pointer;color:#8b7aa0;font-size:16px;line-height:1;padding:0;">+</button>' +
-        '</div>' +
+        '<button onclick="cartQty('+i+',-1)" style="border:1px solid #e8d5f0;background:#fff;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:14px;">−</button> ' +
+        '<strong style="color:#1a0f2e;">' + item.qty + '</strong> ' +
+        '<button onclick="cartQty('+i+',1)"  style="border:1px solid #e8d5f0;background:#fff;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:14px;">+</button>' +
       '</td>' +
-      '<td style="padding:10px 12px;border-bottom:1px solid #f0eaf7;text-align:right;font-size:13px;color:#4a3560;">₹' + item.price.toLocaleString() + '</td>' +
-      '<td style="padding:10px 12px;border-bottom:1px solid #f0eaf7;text-align:right;font-size:13px;font-weight:700;color:#2d1b3d;">₹' + lineTotal.toLocaleString() + '</td>' +
+      '<td style="padding:10px 12px;border-bottom:1px solid #f0eaf7;text-align:right;color:#4a3560;">₹' + item.price.toLocaleString() + '</td>' +
+      '<td style="padding:10px 12px;border-bottom:1px solid #f0eaf7;text-align:right;font-weight:700;color:#2d1b3d;">₹' + lt.toLocaleString() + '</td>' +
       '<td style="padding:10px 12px;border-bottom:1px solid #f0eaf7;text-align:center;">' +
-        '<button onclick="removeCartItem(' + idx + ')" style="border:none;background:#fee2e2;color:#9b1c1c;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:12px;">✕</button>' +
+        '<button onclick="removeCartItem('+i+')" style="border:none;background:#fee2e2;color:#9b1c1c;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:12px;">✕</button>' +
       '</td></tr>';
   }).join('');
-
-  if (totalEl) totalEl.textContent = '₹' + total.toLocaleString();
-  setTimeout(addCartImageMagnify, 50);
+  if (tot) tot.textContent = '₹' + total.toLocaleString();
 }
 
-
-function cartQty(idx, delta) {
-  orderCart[idx].qty += delta;
-  if (orderCart[idx].qty < 1) orderCart[idx].qty = 1;
+function cartQty(i, d) {
+  orderCart[i].qty = Math.max(1, orderCart[i].qty + d);
   renderCart();
 }
 
-function removeCartItem(idx) {
-  const name = orderCart[idx].name;
-  orderCart.splice(idx, 1);
+function removeCartItem(i) {
+  orderCart.splice(i, 1);
   renderCart();
-  showToast(`Removed: ${name}`);
 }
 
 function cartTotal() {
-  return orderCart.reduce((sum, i) => sum + i.price * i.qty, 0);
+  return orderCart.reduce((s, i) => s + i.price * i.qty, 0);
 }
-
-function goToStep(step) {
-  if (step === 2 && orderCart.length === 0) {
-    showToast('Add at least one product first', 'error'); return;
-  }
-  if (step === 3) {
-    const name = document.getElementById('cust-name').value.trim();
-    const addr = document.getElementById('cust-address').value.trim();
-    const pin  = document.getElementById('cust-pin').value.trim();
-    if (!name || !addr || !pin) { showToast('Please fill name, address and pincode', 'error'); return; }
-    // Set payment amount
-    document.getElementById('payment-amount').textContent = '₹' + cartTotal().toLocaleString();
-  }
-  if (step === 4) {
-    const upiTxn = document.getElementById('upi-txn').value.trim();
-    if (uploadedScreenshots.length === 0) { showToast('Upload at least one payment screenshot', 'error'); return; }
-    if (!upiTxn) { showToast('Enter UPI Transaction ID', 'error'); return; }
-    // Populate summary
-    const total = cartTotal();
-    const itemsHtml = orderCart.map(item =>
-      '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid #e8d5f0;">' +
-        '<div>' +
-          '<span style="font-family:monospace;font-size:11px;color:#5a3578;">' + item.sl + '</span>' +
-          '<span style="font-size:13px;font-weight:500;margin-left:10px;color:#1a0f2e;">' + item.name + '</span>' +
-        '</div>' +
-        '<div style="font-size:13px;color:#4a3560;white-space:nowrap;">' +
-          item.qty + ' × ₹' + item.price.toLocaleString() + ' = <strong style="color:#2d1b3d;">₹' + (item.qty * item.price).toLocaleString() + '</strong>' +
-        '</div>' +
-      '</div>'
-    ).join('');
-    document.getElementById('conf-items-list').innerHTML = itemsHtml;
-    document.getElementById('conf-amount').textContent  = '₹' + total.toLocaleString();
-    document.getElementById('conf-cname').textContent   = document.getElementById('cust-name').value;
-    document.getElementById('conf-cphone').textContent  = document.getElementById('cust-phone').value;
-    document.getElementById('conf-caddr').textContent   = document.getElementById('cust-address').value + ', ' + document.getElementById('cust-city').value + ', ' + document.getElementById('cust-state').value;
-    document.getElementById('conf-cpin').textContent    = document.getElementById('cust-pin').value;
-  }
-  // Show correct step, hide others
-  for (let i = 1; i <= 4; i++) {
-    const stepEl = document.getElementById('order-step-' + i);
-    if (stepEl) stepEl.style.display = i === step ? 'block' : 'none';
-    const dot = document.getElementById('step-' + i);
-    if (dot) {
-      dot.className = 'step' + (i < step ? ' done' : i === step ? ' active' : '');
-      dot.querySelector('.step-num').textContent = i < step ? '✓' : i;
-    }
-  }
-}
-
 
 function handleUpload(input) {
   if (!input.files || !input.files.length) return;
-  const grid = document.getElementById('screenshots-grid');
-  if (grid) grid.style.display = 'flex';
-
   Array.from(input.files).forEach(file => {
-    if (!file.type.startsWith('image/')) { showToast('Only image files allowed', 'error'); return; }
-    if (file.size > 10 * 1024 * 1024) { showToast(file.name + ' is too large (max 10MB)', 'error'); return; }
+    if (!file.type.startsWith('image/')) { showToast('Only image files', 'error'); return; }
+    if (file.size > 10 * 1024 * 1024) { showToast(file.name + ' too large', 'error'); return; }
     const reader = new FileReader();
     reader.onload = function(ev) {
-      const idx = uploadedScreenshots.length;
       uploadedScreenshots.push({ file, dataUrl: ev.target.result, name: file.name });
       renderScreenshotGrid();
     };
     reader.readAsDataURL(file);
   });
-  // Reset input so same file can be re-selected
   input.value = '';
 }
 
 function renderScreenshotGrid() {
   const grid = document.getElementById('screenshots-grid');
   if (!grid) return;
-  if (uploadedScreenshots.length === 0) { grid.style.display = 'none'; return; }
+  if (uploadedScreenshots.length === 0) { grid.style.display = 'none'; grid.innerHTML = ''; return; }
   grid.style.display = 'flex';
-  grid.innerHTML = uploadedScreenshots.map((ss, idx) => `
-    <div style="position:relative;width:80px;height:80px;flex-shrink:0;" 
-         onmouseenter="zoomScreenshot(this, true)" onmouseleave="zoomScreenshot(this, false)">
-      <img src="${ss.dataUrl}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:2px solid var(--ok);cursor:zoom-in;display:block;">
-      <button onclick="removeScreenshot(${idx})" 
-        style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--err);color:#fff;border:none;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;line-height:1;">&#215;</button>
-    </div>
-  `).join('') + `
-    <div onclick="document.getElementById('upi-screenshot-input').click()" 
-      style="width:80px;height:80px;border:2px dashed var(--border);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--tl);font-size:11px;gap:4px;">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      Add more
-    </div>
-  `;
+  grid.innerHTML = uploadedScreenshots.map((ss, i) =>
+    '<div style="position:relative;width:80px;height:80px;flex-shrink:0;">' +
+    '<img src="' + ss.dataUrl + '" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:2px solid #2d7a4f;">' +
+    '<button onclick="removeScreenshot(' + i + ')" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:#9b1c1c;color:#fff;border:none;cursor:pointer;font-size:11px;line-height:1;">✕</button>' +
+    '</div>'
+  ).join('') +
+  '<div onclick="document.getElementById(\'upi-screenshot-input\').click()" style="width:80px;height:80px;border:2px dashed #e8d5f0;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:#8b7aa0;font-size:11px;gap:4px;">+<div>Add</div></div>';
 }
 
-function removeScreenshot(idx) {
-  uploadedScreenshots.splice(idx, 1);
+function removeScreenshot(i) {
+  uploadedScreenshots.splice(i, 1);
   renderScreenshotGrid();
 }
 
-function zoomScreenshot(container, enter) {
-  const img = container.querySelector('img');
-  if (!img) return;
-  if (enter) {
-    showImageZoom(img.src, img);
-  } else {
-    hideImageZoom();
+
+function goToStep(step) {
+  if (step === 2 && orderCart.length === 0) { showToast('Add at least one product first', 'error'); return; }
+  if (step === 3) {
+    if (!document.getElementById('cust-name').value.trim())    { showToast('Enter customer name', 'error'); return; }
+    if (!document.getElementById('cust-address').value.trim()) { showToast('Enter delivery address', 'error'); return; }
+    if (!document.getElementById('cust-pin').value.trim())     { showToast('Enter pincode', 'error'); return; }
+    const pamount = document.getElementById('payment-amount');
+    if (pamount) pamount.textContent = '₹' + cartTotal().toLocaleString();
+  }
+  if (step === 4) {
+    if (!document.getElementById('upi-txn').value.trim()) { showToast('Enter UPI Transaction ID', 'error'); return; }
+    if (uploadedScreenshots.length === 0) { showToast('Upload payment screenshot first', 'error'); return; }
+    const total = cartTotal();
+    const confItems = document.getElementById('conf-items-list');
+    if (confItems) {
+      confItems.innerHTML = orderCart.map(item =>
+        '<div style="display:flex;justify-content:space-between;padding:10px 16px;border-bottom:1px solid #e8d5f0;">' +
+        '<div><span style="font-family:monospace;font-size:11px;color:#5a3578;">' + item.sl + '</span>' +
+        '<span style="font-size:13px;font-weight:500;margin-left:10px;color:#1a0f2e;">' + item.name + '</span></div>' +
+        '<div style="font-size:13px;color:#4a3560;">' + item.qty + ' × ₹' + item.price.toLocaleString() +
+        ' = <strong style="color:#2d1b3d;">₹' + (item.qty*item.price).toLocaleString() + '</strong></div></div>'
+      ).join('');
+    }
+    const set = (id, val) => { const el=document.getElementById(id); if(el) el.textContent=val||'—'; };
+    set('conf-amount', '₹' + total.toLocaleString());
+    set('conf-cname',  document.getElementById('cust-name').value);
+    set('conf-cphone', document.getElementById('cust-phone').value);
+    set('conf-caddr',  document.getElementById('cust-address').value + ', ' + document.getElementById('cust-city').value + ' - ' + document.getElementById('cust-state').value);
+    set('conf-cpin',   document.getElementById('cust-pin').value);
+  }
+  for (let i = 1; i <= 4; i++) {
+    const el = document.getElementById('order-step-' + i);
+    if (el) el.style.display = (i === step) ? 'block' : 'none';
+    const dot = document.getElementById('step-' + i);
+    if (dot) {
+      dot.className = 'step' + (i < step ? ' done' : i === step ? ' active' : '');
+      const num = dot.querySelector('.step-num');
+      if (num) num.textContent = i < step ? '✓' : i;
+    }
   }
 }
 
-// Also add magnify for catalog images in cart
-function addCartImageMagnify() {
-  document.querySelectorAll('#cart-tbody img').forEach(img => {
-    img.style.cursor = 'zoom-in';
-    img.title = 'Hover to zoom';
-    img.onmouseenter = function() {
-      showImageZoom(this.src, this);
+async function placeOrder() {
+  if (window_placingOrder) { showToast('Order is being placed, please wait...'); return; }
+  window_placingOrder = true;
+  const btn = document.querySelector('#order-step-4 .btn-primary');
+  if (btn) { btn.textContent = 'Placing...'; btn.disabled = true; }
+  try {
+    let screenshotUrl = null;
+    if (uploadedScreenshots.length > 0 && SESSION) {
+      const urls = [];
+      for (const ss of uploadedScreenshots) {
+        try {
+          const blob = await (await fetch(ss.dataUrl)).blob();
+          const path = SESSION.userId + '/' + Date.now() + '_' + ss.name;
+          const url  = await sb.uploadFile('screenshots', path, blob, SESSION.token);
+          urls.push(url);
+        } catch(ex) { console.warn('Screenshot upload failed:', ex.message); }
+      }
+      if (urls.length) screenshotUrl = urls.join(',');
+    }
+    const body = {
+      reseller_id:      SESSION.userId,
+      reseller_name:    currentUser.name,
+      reseller_email:   currentUser.email,
+      customer_name:    document.getElementById('cust-name').value,
+      customer_phone:   document.getElementById('cust-phone').value,
+      customer_address: document.getElementById('cust-address').value,
+      customer_city:    document.getElementById('cust-city').value,
+      customer_state:   document.getElementById('cust-state').value,
+      customer_pin:     document.getElementById('cust-pin').value,
+      items:            JSON.parse(JSON.stringify(orderCart)),
+      total_price:      cartTotal(),
+      upi_txn_id:       document.getElementById('upi-txn').value.trim(),
+      screenshot_url:   screenshotUrl,
+      notes:            (document.getElementById('order-notes').value||'').trim(),
+      status:           'pending',
+      payment_status:   'pending'
     };
-    img.onmouseleave = function() {
-      hideImageZoom();
-    };
-  });
-}
-
-function showImageZoom(src, anchor) {
-  let zoom = document.getElementById('img-zoom-popup');
-  if (!zoom) {
-    zoom = document.createElement('div');
-    zoom.id = 'img-zoom-popup';
-    zoom.style.cssText = 'position:fixed;z-index:9998;pointer-events:none;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.4);border:2px solid var(--border);background:#fff;overflow:hidden;transition:opacity .15s;';
-    document.body.appendChild(zoom);
+    await sb.post('orders', body, SESSION.token);
+    await loadOrders();
+    // Reset everything
+    orderCart = [];
+    uploadedScreenshots = [];
+    shipToSelfOn = false;
+    ['cust-name','cust-phone','cust-address','cust-city','cust-state','cust-pin','upi-txn','order-notes'].forEach(id => {
+      const el = document.getElementById(id); if(el) el.value='';
+    });
+    const t = document.getElementById('ship-self-toggle');
+    const k = document.getElementById('ship-self-knob');
+    if(t) t.style.background='#e8d5f0';
+    if(k) k.style.transform='translateX(0)';
+    renderCart();
+    renderScreenshotGrid();
+    const badge = document.getElementById('nav-order-count');
+    if (badge) badge.textContent = ORDERS.filter(o => o.resellerEmail === currentUser.email).length;
+    showToast('Order placed! Awaiting payment verification.');
+    goToStep(1);
+    setTimeout(() => showPage('my-orders'), 1200);
+  } catch(err) {
+    console.error('placeOrder error:', err);
+    showToast('Failed: ' + (err.message||'Please try again'), 'error');
+  } finally {
+    window_placingOrder = false;
+    if (btn) { btn.textContent = '✓ Place Order'; btn.disabled = false; }
   }
-  const img = document.createElement('img');
-  img.src = src;
-  img.style.cssText = 'width:200px;height:200px;object-fit:cover;display:block;';
-  zoom.innerHTML = '';
-  zoom.appendChild(img);
-  zoom.style.opacity = '1';
-  
-  // Position near anchor
-  const rect = anchor.getBoundingClientRect();
-  const left = Math.min(rect.right + 10, window.innerWidth - 220);
-  const top  = Math.max(rect.top - 80, 10);
-  zoom.style.left = left + 'px';
-  zoom.style.top  = top  + 'px';
 }
 
-function hideImageZoom() {
-  const zoom = document.getElementById('img-zoom-popup');
-  if (zoom) zoom.style.opacity = '0';
-}
 
 // ══════════════════════════════════════════════
 // CANCEL ORDER (Reseller)
@@ -4324,7 +4234,6 @@ function deductStock(items) {
 // ══════════════════════════════════════════════
 // PROFILE (Reseller)
 // ══════════════════════════════════════════════
-var shipToSelfOn = false;
 
 function updateProfileBanner() {
   var name = (document.getElementById('prof-name') || {}).value || '';
