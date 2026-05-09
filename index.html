@@ -2803,7 +2803,7 @@ function showPage(name) {
   document.getElementById('topbar-title').textContent = titles[name] || name;
   if (name === 'dashboard') renderDashboard();
   if (name === 'my-orders') renderMyOrders('all');
-  if (name === 'invoices') renderInvoices('reseller');
+  if (name === 'invoices') renderInvoices(currentUser?.role === 'reseller' ? 'reseller' : 'admin');
   if (name === 'my-profile') loadProfile();
   if (name === 'admin-orders') renderAdminOrders();
   if (name === 'admin-resellers') renderResellers();
@@ -3056,9 +3056,11 @@ async function handleLogout() {
 }
 
 async function enterApp() {
-  const isAdmin = currentUser.role === 'admin';
+  const role    = currentUser.role;
+  const isAdmin = role === 'admin' || role === 'manager';
+  const roleLabel = role === 'admin' ? 'Admin / Owner' : role === 'manager' ? 'Manager' : 'Reseller Account';
   document.getElementById('sidebar-name').textContent = currentUser.name || currentUser.email;
-  document.getElementById('sidebar-role').textContent = isAdmin ? 'Admin / Owner' : 'Reseller Account';
+  document.getElementById('sidebar-role').textContent = roleLabel;
   document.getElementById('sidebar-avatar').textContent = (currentUser.name || currentUser.email || 'U').charAt(0).toUpperCase();
   document.getElementById('admin-bar').style.display = isAdmin ? 'flex' : 'none';
   document.getElementById('nav-reseller').style.display = isAdmin ? 'none' : 'block';
@@ -3104,7 +3106,7 @@ async function loadCatalog() {
 async function loadOrders() {
   try {
     let query = 'order=created_at.desc&select=*';
-    if (currentUser && currentUser.role !== 'admin') {
+    if (currentUser && currentUser.role === 'reseller') {
       query += '&reseller_id=eq.' + (SESSION && SESSION.userId);
     }
     const rows = await sb.get('orders', query, SESSION && SESSION.token);
@@ -3557,7 +3559,7 @@ async function markDelivered(orderId) {
     await sb.patch('orders', 'order_number=eq.' + orderId, { status: 'delivered' }, SESSION.token);
     o.status = 'delivered';
     closeModal('modal-order');
-    if (currentUser && currentUser.role === 'admin') {
+    if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'manager')) {
       renderAdminOrders();
       renderAdminPending();
     } else {
@@ -3610,7 +3612,7 @@ function viewOrder(orderId) {
   const o = ORDERS.find(x => x.id === orderId);
   if (!o) { showToast('Order not found', 'error'); return; }
   currentTrackingOrderId = orderId;
-  const isAdmin = currentUser && currentUser.role === 'admin';
+  const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.role === 'manager');
 
   const itemsSection = (o.items && o.items.length > 1)
     ? '<div style="margin:4px 0 8px"><div style="font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--text-light);margin-bottom:6px">Items (' + o.items.length + ')</div>' +
@@ -4609,7 +4611,8 @@ async function savePortalSettings() {
 }
 
 function renderDashboard() {
-  const myOrders = ORDERS.filter(o => o.resellerEmail === currentUser?.email);
+  const isManagerOrAdmin = currentUser?.role === 'admin' || currentUser?.role === 'manager';
+  const myOrders = isManagerOrAdmin ? ORDERS : ORDERS.filter(o => o.resellerEmail === currentUser?.email);
   const total     = myOrders.length;
   const pending   = myOrders.filter(o => o.status === 'pending').length;
   const shipped   = myOrders.filter(o => o.status === 'shipped').length;
@@ -4659,7 +4662,8 @@ function renderDashboard() {
 }
 
 function renderMyOrders(filter) {
-  let orders = ORDERS.filter(o => o.resellerEmail === currentUser?.email);
+  const isManagerOrAdmin = currentUser?.role === 'admin' || currentUser?.role === 'manager';
+  let orders = isManagerOrAdmin ? ORDERS : ORDERS.filter(o => o.resellerEmail === currentUser?.email);
   if (filter !== 'all') orders = orders.filter(o => o.status === filter);
   const tbody = document.getElementById('my-orders-tbody');
   if (!tbody) return;
@@ -4784,7 +4788,8 @@ function renderResellers() {
 }
 /* === app.invoice.js === */
 function renderInvoices(role) {
-  const orders = (role === 'reseller' ? ORDERS.filter(o => o.resellerEmail === currentUser?.email) : ORDERS).filter(o => o.status !== 'cancelled');
+  const isAdminView = role === 'admin' || role === 'manager';
+  const orders = (isAdminView ? ORDERS : ORDERS.filter(o => o.resellerEmail === currentUser?.email)).filter(o => o.status !== 'cancelled');
   const tbody = document.getElementById(role === 'reseller' ? 'invoices-tbody' : 'admin-invoices-tbody');
   if (!tbody) return;
   tbody.innerHTML = orders.map(o => {
