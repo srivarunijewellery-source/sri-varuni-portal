@@ -5,7 +5,7 @@ const SUPABASE_URL = 'https://brtepaeqocjxmkinrwpg.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJydGVwYWVxb2NqeG1raW5yd3BnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxNzQ2ODQsImV4cCI6MjA5Mzc1MDY4NH0.1qke-Eagrl6Vaef2hrFoOKoB2pSnqEoQKmGN7i3EkI0';
 
 // ══════════════════════════════════════════════
-// GLOBAL STATE — declared once here, never re-declared elsewhere
+// GLOBAL STATE — declared once here
 // ══════════════════════════════════════════════
 let SESSION             = null;
 let currentUser         = null;
@@ -34,10 +34,10 @@ let pendingProductImage    = null;
 let pendingLogoData        = null;
 
 // ══════════════════════════════════════════════
-// SUPABASE REST API HELPERS
+// SUPABASE REST HELPERS
 // ══════════════════════════════════════════════
 const sb = {
-  authHeaders: function(token) {
+  authHeaders(token) {
     return {
       'apikey': SUPABASE_KEY,
       'Authorization': 'Bearer ' + (token || SUPABASE_KEY),
@@ -54,9 +54,10 @@ const sb = {
     const url = SUPABASE_URL + '/rest/v1/' + table;
     const headers = { ...this.authHeaders(token), 'Prefer': 'return=minimal' };
     const r = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
+    // Supabase returns 200, 201, or 204 for successful inserts with return=minimal
     if (r.status !== 200 && r.status !== 201 && r.status !== 204) {
       const errText = await r.text();
-      throw new Error(errText);
+      throw new Error(errText || 'HTTP ' + r.status);
     }
     const text = await r.text();
     return text ? JSON.parse(text) : {};
@@ -69,12 +70,12 @@ const sb = {
     const text = await r.text();
     return text ? JSON.parse(text) : {};
   },
-  async uploadFile(bucket, path, file, token) {
+  async uploadFile(bucket, path, blob, token) {
     const url = SUPABASE_URL + '/storage/v1/object/' + bucket + '/' + path;
     const r = await fetch(url, {
       method: 'POST',
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + (token || SUPABASE_KEY) },
-      body: file
+      body: blob
     });
     if (!r.ok) throw new Error(await r.text());
     return SUPABASE_URL + '/storage/v1/object/public/' + bucket + '/' + path;
@@ -123,16 +124,21 @@ function saveSession(data) {
   SESSION = { token: data.access_token, userId: data.user.id, email: data.user.email };
   try { localStorage.setItem('sv_session', JSON.stringify(SESSION)); } catch(e) {}
 }
-
 function loadSession() {
-  try {
-    const s = localStorage.getItem('sv_session');
-    if (s) SESSION = JSON.parse(s);
-  } catch(e) {}
+  try { const s = localStorage.getItem('sv_session'); if (s) SESSION = JSON.parse(s); } catch(e) {}
   return SESSION;
 }
-
 function clearSession() {
   SESSION = null;
   try { localStorage.removeItem('sv_session'); } catch(e) {}
+}
+
+// ── dataURL → Blob (no fetch, works everywhere) ──────────────────────────────
+function dataURLtoBlob(dataUrl) {
+  const parts = dataUrl.split(',');
+  const mime  = parts[0].match(/:(.*?);/)[1];
+  const bstr  = atob(parts[1]);
+  const arr   = new Uint8Array(bstr.length);
+  for (let i = 0; i < bstr.length; i++) arr[i] = bstr.charCodeAt(i);
+  return new Blob([arr], { type: mime });
 }
