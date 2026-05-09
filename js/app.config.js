@@ -4,14 +4,39 @@
 const SUPABASE_URL = 'https://brtepaeqocjxmkinrwpg.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJydGVwYWVxb2NqeG1raW5yd3BnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxNzQ2ODQsImV4cCI6MjA5Mzc1MDY4NH0.1qke-Eagrl6Vaef2hrFoOKoB2pSnqEoQKmGN7i3EkI0';
 
-// Supabase REST API helpers
+// ══════════════════════════════════════════════
+// GLOBAL STATE — declared once here, never re-declared elsewhere
+// ══════════════════════════════════════════════
+let SESSION             = null;
+let currentUser         = null;
+let currentUserProfile  = null;
+
+// Data stores
+let ORDERS    = [];
+let RESELLERS = [];
+let CATALOG   = {};
+let PRODUCTS  = {};
+
+// Order flow state
+let orderCart             = [];
+let uploadedScreenshots   = [];
+let shipToSelfOn          = false;
+let applyCreditToOrder    = false;
+let resellerCreditBalance = 0;
+let window_placingOrder   = false;
+
+// Admin / UI state
+let currentTrackingOrderId = null;
+let resellerFilter         = 'active';
+let currentCreditReseller  = null;
+let editingProductSL       = null;
+let pendingProductImage    = null;
+let pendingLogoData        = null;
+
+// ══════════════════════════════════════════════
+// SUPABASE REST API HELPERS
+// ══════════════════════════════════════════════
 const sb = {
-  headers: {
-    'apikey': SUPABASE_KEY,
-    'Authorization': 'Bearer ' + SUPABASE_KEY,
-    'Content-Type': 'application/json',
-    'Prefer': 'return=representation'
-  },
   authHeaders: function(token) {
     return {
       'apikey': SUPABASE_KEY,
@@ -29,8 +54,7 @@ const sb = {
     const url = SUPABASE_URL + '/rest/v1/' + table;
     const headers = { ...this.authHeaders(token), 'Prefer': 'return=minimal' };
     const r = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
-    // 201 Created and 200 OK are both success for Supabase inserts
-    if (r.status !== 200 && r.status !== 201) {
+    if (r.status !== 200 && r.status !== 201 && r.status !== 204) {
       const errText = await r.text();
       throw new Error(errText);
     }
@@ -53,10 +77,8 @@ const sb = {
       body: file
     });
     if (!r.ok) throw new Error(await r.text());
-    // Use public URL (bucket must be public) 
     return SUPABASE_URL + '/storage/v1/object/public/' + bucket + '/' + path;
   },
-  // Auth
   async signIn(email, password) {
     const r = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=password', {
       method: 'POST',
@@ -74,7 +96,6 @@ const sb = {
       body: JSON.stringify({ email, password, data: meta })
     });
     const data = await r.json();
-    // Supabase returns 200 for signup — error is in data.error or data.msg
     if (data.error || data.error_description || (data.msg && !data.id && !data.user)) {
       throw new Error(data.error_description || data.error || data.msg || 'Signup failed');
     }
@@ -97,10 +118,7 @@ const sb = {
   }
 };
 
-// Session management
-let SESSION = null; // { access_token, user }
-
-
+// ── Session helpers ──────────────────────────────────────────────────────────
 function saveSession(data) {
   SESSION = { token: data.access_token, userId: data.user.id, email: data.user.email };
   try { localStorage.setItem('sv_session', JSON.stringify(SESSION)); } catch(e) {}
