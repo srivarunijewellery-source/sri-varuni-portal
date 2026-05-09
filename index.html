@@ -2493,6 +2493,11 @@ function clearSession() {
 // ══════════════════════════════════════════════
 let ORDERS = [];
 let RESELLERS = [];
+let orderCart = [];
+let uploadedScreenshots = [];
+let shipToSelfOn = false;
+let window_placingOrder = false;
+
 var CATALOG = {};
 var PRODUCTS = {
   'SV-2024-001': { name: 'Antique Gold Necklace Set', details: 'Temple jewellery · 22g · Gold plated', price: 850, gst: 3, image: null },
@@ -3240,10 +3245,6 @@ function renderDashboard() {
 // ══════════════════════════════════════════════
 // ORDER FLOW — CLEAN REWRITE
 // ══════════════════════════════════════════════
-let orderCart = [];
-let uploadedScreenshots = [];
-let shipToSelfOn = false;
-let window_placingOrder = false; // use var instead of window prop
 
 var PRODUCTS = {
   'SV-2024-001': { name: 'Antique Gold Necklace Set', details: 'Temple jewellery · Gold plated', price: 850, gst: 3, image: null },
@@ -4281,5 +4282,10 @@ function toggleShipToSelf() {
 // ══════════════════════════════════════════════
 // MOBILE SIDEBAR════════════
 // MOBILE SIDEBAR</script>
+
+<!-- Toast notification -->
+<div id="toast" class="toast success">
+  <span id="toast-msg"></span>
+</div>
 </body>
 </html>
