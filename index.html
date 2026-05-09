@@ -1160,6 +1160,7 @@
       <span style="font-size:12px;color:var(--warning);line-height:1.5;">Your account requires <strong>admin approval</strong> before you can login. You'll receive your login credentials once approved.</span>
     </div>
     <button class="btn btn-primary" onclick="handleSignup()">Submit Request</button>
+    <div id="signup-log" style="display:none;margin-top:14px;background:#1a0f2e;border-radius:8px;padding:12px 14px;font-family:monospace;font-size:11px;color:#c9a96e;max-height:150px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;"></div>
     <div class="auth-link">
       Already have an account? <a onclick="showScreen('login')">Sign In</a>
     </div>
@@ -2763,62 +2764,61 @@ async function handleSignup() {
   const btn = document.querySelector('#screen-signup .btn-primary');
   btn.textContent = 'Submitting...'; btn.disabled = true;
 
+  // Visible log box for debugging
+  const logEl = document.getElementById('signup-log');
+  const log = (msg) => {
+    console.log('[signup]', msg);
+    if (logEl) { logEl.style.display = 'block'; logEl.textContent += msg + '\n'; logEl.scrollTop = logEl.scrollHeight; }
+  };
+  if (logEl) logEl.textContent = '';
+
   try {
+    log('1. Calling signUp for: ' + email);
     const result = await sb.signUp(email, pass, { name, phone, business, city, role: 'reseller', status: 'pending' });
-    console.log('signUp result:', JSON.stringify(result).slice(0, 300));
+    log('2. signUp response: ' + JSON.stringify(result).slice(0, 200));
 
-    // Extract userId — handles both email-confirm ON and OFF cases:
-    // • confirm OFF: result.user.id exists immediately
-    // • confirm ON:  result.user is null; try result.id or result.identities[0].user_id
-    const userId = result?.user?.id
-      || result?.id
-      || result?.identities?.[0]?.user_id
-      || null;
-
-    console.log('userId resolved:', userId);
+    const userId      = result?.user?.id || result?.id || result?.identities?.[0]?.user_id || null;
+    // Supabase returns the session access_token when email confirm is OFF
+    const userToken   = result?.session?.access_token || result?.access_token || null;
+    log('3. userId=' + userId + ' hasToken=' + !!userToken);
 
     const profileData = { email, name, phone, business, city, role: 'reseller', status: 'pending' };
 
     if (userId) {
-      // Profile insert with user id
+      // Use the USER'S OWN token if available (bypasses RLS "insert for self" policy)
+      // Fall back to anon key if no session token (email confirm ON)
+      const authToken = userToken || SUPABASE_KEY;
+      log('4. Inserting profile, using ' + (userToken ? 'user token' : 'anon key'));
+
       const profRes = await fetch(SUPABASE_URL + '/rest/v1/profiles', {
         method: 'POST',
         headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': 'Bearer ' + SUPABASE_KEY,
-          'Content-Type': 'application/json',
-          'Prefer': 'resolution=merge-duplicates,return=minimal'
+          'apikey':        SUPABASE_KEY,
+          'Authorization': 'Bearer ' + authToken,
+          'Content-Type':  'application/json',
+          'Prefer':        'resolution=merge-duplicates,return=minimal'
         },
         body: JSON.stringify({ id: userId, ...profileData })
       });
       const profText = await profRes.text();
-      console.log('Profile upsert status:', profRes.status, profText);
+      log('5. Profile insert: HTTP ' + profRes.status + ' — ' + (profText || '(empty)'));
 
       if (profRes.status !== 200 && profRes.status !== 201 && profRes.status !== 204) {
-        console.warn('Profile insert HTTP error:', profRes.status, profText);
-        // Do NOT throw — signup still succeeded, admin can manually approve
+        log('ERROR: Profile insert failed. RLS may be blocking — check Supabase policies.');
+        log('HINT: In Supabase SQL Editor run: ALTER TABLE profiles ENABLE ROW LEVEL SECURITY; CREATE POLICY "resellers can insert own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);');
+      } else {
+        log('6. Profile saved. Reseller will appear in admin pending list.');
       }
     } else {
-      // email confirmation is ON — no userId yet.
-      // Insert a pending_signups record so admin sees the request immediately.
-      console.log('No userId yet (email confirm pending) — saving to pending_signups');
-      const pendingRes = await fetch(SUPABASE_URL + '/rest/v1/pending_signups', {
-        method: 'POST',
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': 'Bearer ' + SUPABASE_KEY,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=minimal'
-        },
-        body: JSON.stringify(profileData)
-      });
-      const pendingText = await pendingRes.text();
-      console.log('pending_signups result:', pendingRes.status, pendingText);
-      // If pending_signups doesn't exist (404/42P01) that's OK — just log it
+      log('4. No userId — email confirmation is ON in Supabase.');
+      log('   Reseller must confirm email before profile is created.');
+      log('   To fix: Supabase Dashboard → Auth → Settings → disable email confirmations.');
     }
 
+    log('Done — showing success screen.');
     showScreen('signup-success');
   } catch(err) {
+    log('EXCEPTION: ' + err.message);
     console.error('Signup error:', err);
     showToast(err.message || 'Signup failed. Please try again.', 'error');
   } finally {
@@ -3339,6 +3339,26 @@ async function cancelOrder(orderId) {
     showToast('Order ' + orderId + ' cancelled');
   } catch(err) { showToast('Failed: ' + err.message, 'error'); }
 }
+
+async function markDelivered(orderId) {
+  const o = ORDERS.find(x => x.id === orderId);
+  if (!o) return;
+  if (o.status !== 'shipped') { showToast('Only shipped orders can be marked delivered', 'error'); return; }
+  if (!confirm('Mark order ' + orderId + ' as delivered?')) return;
+  try {
+    await sb.patch('orders', 'order_number=eq.' + orderId, { status: 'delivered' }, SESSION.token);
+    o.status = 'delivered';
+    closeModal('modal-order');
+    if (currentUser && currentUser.role === 'admin') {
+      renderAdminOrders();
+      renderAdminPending();
+    } else {
+      renderMyOrders('all');
+      renderDashboard();
+    }
+    showToast('Order ' + orderId + ' marked as delivered');
+  } catch(err) { showToast('Failed: ' + err.message, 'error'); }
+}
 /* === app.order-detail.js === */
 function buildScreenshotSection(o) {
   if (!o.screenshotUrl) return '';
@@ -3427,12 +3447,14 @@ function viewOrder(orderId) {
       '<button class="btn btn-outline btn-sm" onclick="openEditOrder(\'' + o.id + '\')">&#9998; Edit</button>' +
       (o.status === 'pending' ? '<button class="btn btn-success btn-sm" onclick="confirmVerifyPayment(\'' + o.id + '\')">&#10003; Verify Payment</button>' : '') +
       (o.status === 'confirmed' ? '<button class="btn btn-primary btn-sm" onclick="openTracking(\'' + o.id + '\')">&#43; Add Tracking</button>' : '') +
+      (o.status === 'shipped' ? '<button class="btn btn-success btn-sm" onclick="markDelivered(\'' + o.id + '\')">&#10003; Mark Delivered</button>' : '') +
       (o.status !== 'cancelled' ? '<button class="btn btn-outline btn-sm" onclick="showInvoice(\'' + o.id + '\')">Invoice</button>' : '');
   } else {
     footer.innerHTML =
       '<button class="btn btn-outline" onclick="closeModal(\'modal-order\')">Close</button>' +
       (o.status !== 'cancelled' ? '<button class="btn btn-outline btn-sm" onclick="showInvoice(\'' + o.id + '\')">Invoice</button>' : '') +
       (o.tracking ? '<button class="btn btn-primary btn-sm" onclick="showLabel(\'' + o.id + '\')">Shipping Label</button>' : '') +
+      (o.status === 'shipped' ? '<button class="btn btn-success btn-sm" onclick="markDelivered(\'' + o.id + '\')">&#10003; Mark Delivered</button>' : '') +
       (o.status === 'pending' ? '<button class="btn btn-danger btn-sm" onclick="cancelOrder(\'' + o.id + '\')">&#215; Cancel Order</button>' : '');
   }
   openModal('modal-order');
@@ -4171,8 +4193,7 @@ function renderAdminPending() {
       <td style="font-weight:600;">₹${o.price.toLocaleString()}</td>
       <td>${statusBadge(o.status)}</td>
       <td>
-        ${o.status==='pending'?`<button class="btn btn-success btn-sm" onclick="verifyPayment('${o.id}')">✓ Verify</button>`:''}
-        ${o.status==='confirmed'?`<button class="btn btn-primary btn-sm" onclick="openTracking('${o.id}')">+ Ship</button>`:''}
+        ${o.status==='pending'?`<button class="btn btn-outline btn-sm" onclick="viewOrder('${o.id}')">View & Verify</button>`:''}        ${o.status==='confirmed'?`<button class="btn btn-primary btn-sm" onclick="openTracking('${o.id}')">+ Ship</button>`:''}
       </td>
     </tr>
   `).join('') || '<tr><td colspan="6"><div class="empty-state" style="padding:24px;"><p>All caught up!</p></div></td></tr>';
