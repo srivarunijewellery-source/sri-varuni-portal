@@ -13,7 +13,7 @@ async function handleLogin() {
   btn.textContent = 'Signing in...'; btn.disabled = true;
 
   const dbg = document.getElementById('debug-panel');
-  function log(msg) { 
+  function log(msg) {
     console.log(msg);
     if (dbg) { dbg.style.display='block'; dbg.textContent += msg + '\n'; dbg.scrollTop = dbg.scrollHeight; }
   }
@@ -30,12 +30,10 @@ async function handleLogin() {
       log('4. Profile: ' + (profile ? profile.role + '/' + profile.status : 'NOT FOUND'));
     } catch(pe) { log('4. Profile fetch failed: ' + pe.message); }
 
-    // If profile missing, create a fallback
     if (!profile) {
       profile = { id: data.user.id, email, name: email.split('@')[0], role: 'reseller', status: 'active' };
     }
-    
-    // Block pending resellers
+
     if (profile.role === 'reseller' && profile.status === 'pending') {
       await sb.signOut(data.access_token).catch(() => {});
       clearSession();
@@ -90,15 +88,23 @@ async function handleSignup() {
 
   try {
     const result = await sb.signUp(email, pass, { name, phone, business, city, role: 'reseller', status: 'pending' });
-    console.log('signUp result:', JSON.stringify(result).slice(0, 200));
+    console.log('signUp result:', JSON.stringify(result).slice(0, 300));
 
-    // Get user ID from result (Supabase returns different shapes)
-    const userId = result?.user?.id || result?.id || null;
-    console.log('userId:', userId);
+    // Extract userId — handles both email-confirm ON and OFF cases:
+    // • confirm OFF: result.user.id exists immediately
+    // • confirm ON:  result.user is null; try result.id or result.identities[0].user_id
+    const userId = result?.user?.id
+      || result?.id
+      || result?.identities?.[0]?.user_id
+      || null;
+
+    console.log('userId resolved:', userId);
+
+    const profileData = { email, name, phone, business, city, role: 'reseller', status: 'pending' };
 
     if (userId) {
-      // Always manually upsert profile - don't rely on trigger
-      const r = await fetch(SUPABASE_URL + '/rest/v1/profiles', {
+      // Profile insert with user id
+      const profRes = await fetch(SUPABASE_URL + '/rest/v1/profiles', {
         method: 'POST',
         headers: {
           'apikey': SUPABASE_KEY,
@@ -106,13 +112,34 @@ async function handleSignup() {
           'Content-Type': 'application/json',
           'Prefer': 'resolution=merge-duplicates,return=minimal'
         },
-        body: JSON.stringify({ id: userId, email, name, phone, business, city, role: 'reseller', status: 'pending' })
+        body: JSON.stringify({ id: userId, ...profileData })
       });
-      console.log('Profile upsert status:', r.status, await r.text());
+      const profText = await profRes.text();
+      console.log('Profile upsert status:', profRes.status, profText);
+
+      if (profRes.status !== 200 && profRes.status !== 201 && profRes.status !== 204) {
+        console.warn('Profile insert HTTP error:', profRes.status, profText);
+        // Do NOT throw — signup still succeeded, admin can manually approve
+      }
     } else {
-      // No userId means email confirmation is required - profile will be created on confirm
-      console.log('No userId in signup result - email confirmation likely required');
+      // email confirmation is ON — no userId yet.
+      // Insert a pending_signups record so admin sees the request immediately.
+      console.log('No userId yet (email confirm pending) — saving to pending_signups');
+      const pendingRes = await fetch(SUPABASE_URL + '/rest/v1/pending_signups', {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_KEY,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify(profileData)
+      });
+      const pendingText = await pendingRes.text();
+      console.log('pending_signups result:', pendingRes.status, pendingText);
+      // If pending_signups doesn't exist (404/42P01) that's OK — just log it
     }
+
     showScreen('signup-success');
   } catch(err) {
     console.error('Signup error:', err);
