@@ -2580,7 +2580,24 @@ async function handleSignup() {
 
   try {
     const result = await sb.signUp(email, pass, { name, phone, business, city, role: 'reseller', status: 'pending' });
-    // Success regardless of email confirmation setting
+    // Manually insert profile in case trigger doesn't fire
+    if (result && (result.user || result.id)) {
+      const userId = result.user ? result.user.id : result.id;
+      if (userId) {
+        // Upsert profile (insert or update if already exists)
+        const upsertUrl = SUPABASE_URL + '/rest/v1/profiles';
+        await fetch(upsertUrl, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': 'Bearer ' + SUPABASE_KEY,
+            'Content-Type': 'application/json',
+            'Prefer': 'resolution=merge-duplicates,return=minimal'
+          },
+          body: JSON.stringify({ id: userId, email, name, phone, business, city, role: 'reseller', status: 'pending' })
+        }).catch(() => {});
+      }
+    }
     showScreen('signup-success');
   } catch(err) {
     showToast(err.message || 'Signup failed', 'error');
@@ -2938,11 +2955,28 @@ async function addReseller() {
   btn.textContent = 'Creating...'; btn.disabled = true;
 
   try {
-    await sb.signUp(email, pass || 'Varuni@123', { name, phone, business, city, role: 'reseller' });
+    const signupResult = await sb.signUp(email, pass || 'Varuni@123', { name, phone, business, city, role: 'reseller' });
+    // Manually insert profile
+    if (signupResult && (signupResult.user || signupResult.id)) {
+      const uid = signupResult.user ? signupResult.user.id : signupResult.id;
+      if (uid) {
+        const adminUpsertUrl = SUPABASE_URL + '/rest/v1/profiles';
+        await fetch(adminUpsertUrl, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': 'Bearer ' + SESSION.token,
+            'Content-Type': 'application/json',
+            'Prefer': 'resolution=merge-duplicates,return=minimal'
+          },
+          body: JSON.stringify({ id: uid, email, name, phone, business, city, role: 'reseller', status: 'active' })
+        }).catch(() => {});
+      }
+    }
     await loadResellers();
     closeModal('modal-add-reseller');
     renderResellers();
-    showToast('Reseller account created! Login details sent.');
+    showToast('Reseller account created!');
   } catch(err) {
     showToast('Failed: ' + err.message, 'error');
   } finally {
@@ -3214,11 +3248,14 @@ function renderDashboard() {
 
   // Load credits balance
   if (SESSION && SESSION.userId) {
-    sb.get('credits_balance', 'reseller_id=eq.' + SESSION.userId + '&select=balance', SESSION.token)
+    sb.get('credits', 'reseller_id=eq.' + SESSION.userId + '&select=amount', SESSION.token)
       .then(rows => {
-        const bal = rows && rows[0] ? rows[0].balance : 0;
+        const bal = rows ? rows.reduce((sum, r) => sum + (r.amount || 0), 0) : 0;
         setStat('stat-credits', '&#8377;' + parseInt(bal).toLocaleString());
-      }).catch(() => {});
+      }).catch(err => {
+        console.warn('Credits fetch error:', err);
+        setStat('stat-credits', '&#8377;0');
+      });
   }
 
   const tbody = document.getElementById('reseller-orders-tbody');
@@ -3622,9 +3659,17 @@ async function saveCredit() {
   const btn = document.querySelector('#modal-credit .btn-primary');
   btn.textContent = 'Issuing...'; btn.disabled = true;
   try {
-    const profiles = await sb.get('profiles', 'email=eq.' + currentCreditReseller.email + '&select=id', SESSION.token);
-    if (!profiles.length) throw new Error('Reseller not found');
-    await sb.post('credits', { reseller_id: profiles[0].id, amount, note: note || (amount>0?'Credit issued':'Credit deducted'), issued_by: SESSION.userId }, SESSION.token);
+    // Get reseller profile
+    const rProfiles = await sb.get('profiles', 'email=eq.' + encodeURIComponent(currentCreditReseller.email) + '&select=id,email', SESSION.token);
+    if (!rProfiles || !rProfiles.length) throw new Error('Reseller profile not found in DB');
+    const resellerId = rProfiles[0].id;
+    // Insert credit
+    await sb.post('credits', {
+      reseller_id: resellerId,
+      amount: amount,
+      note: note || (amount > 0 ? 'Credit issued by admin' : 'Credit deducted by admin'),
+      issued_by: SESSION.userId
+    }, SESSION.token);
     closeModal('modal-credit');
     showToast((amount>0?'Rs.'+amount+' credit issued to ':'Rs.'+Math.abs(amount)+' deducted from ') + currentCreditReseller.name);
   } catch(err) { showToast('Failed: ' + err.message, 'error'); }
@@ -3632,8 +3677,11 @@ async function saveCredit() {
 }
 
 async function loadResellerCredits(resellerId) {
-  try { return await sb.get('credits', 'reseller_id=eq.' + resellerId + '&order=created_at.desc&select=*', SESSION.token); }
-  catch(e) { return []; }
+  try { 
+    const rows = await sb.get('credits', 'reseller_id=eq.' + resellerId + '&order=created_at.desc&select=*', SESSION.token);
+    return rows || [];
+  }
+  catch(e) { console.warn('loadResellerCredits:', e.message); return []; }
 }
 
 // ══════════════════════════════════════════════
