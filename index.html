@@ -3856,6 +3856,36 @@ function setProductImageUI(imgSrc) {
 }
 
 
+
+// ══════════════════════════════════════════════
+// MOBILE SIDEBAR
+// ══════════════════════════════════════════════
+function openSidebar() {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebar-overlay').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+// ══════════════════════════════════════════════
+// LOGO / BRAND
+// ══════════════════════════════════════════════
+function applyLogoEverywhere(url) {
+  if (!url) return;
+  ['auth-logo-img','sidebar-logo-img'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.src = url; el.style.display = 'block'; }
+  });
+  ['auth-icon-default','sidebar-icon-default'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+}
+
 // ══════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════
@@ -4342,126 +4372,6 @@ function toggleShipToSelf() {
 
 
 // ══════════════════════════════════════════════
-// MOBILE SIDEBAR
-// ══════════════════════════════════════════════
-function openSidebar() {
-  document.getElementById('main-sidebar').classList.add('open');
-  document.getElementById('sidebar-overlay').classList.add('open');
-  document.body.style.overflow = 'hidden';
-}
-function closeSidebar() {
-  document.getElementById('main-sidebar').classList.remove('open');
-  document.getElementById('sidebar-overlay').classList.remove('open');
-  document.body.style.overflow = '';
-}
-// Close sidebar on nav item click (mobile)
-document.addEventListener('DOMContentLoaded', function() {
-  document.querySelectorAll('.nav-item').forEach(function(item) {
-    item.addEventListener('click', function() {
-      if (window.innerWidth <= 768) closeSidebar();
-    });
-  });
-});
-
-// ══════════════════════════════════════════════
-// LOGO UPLOAD
-// ══════════════════════════════════════════════
-var pendingLogoData = null;
-
-function openLogoUpload() {
-  openModal('modal-logo');
-}
-
-function handleLogoUpload(input) {
-  if (!input.files || !input.files[0]) return;
-  const file = input.files[0];
-  if (file.size > 2 * 1024 * 1024) { showToast('Logo must be under 2MB', 'error'); return; }
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    pendingLogoData = e.target.result;
-    document.getElementById('logo-preview-img').src = pendingLogoData;
-    document.getElementById('logo-preview-dark').src = pendingLogoData;
-    document.getElementById('logo-empty-state').style.display = 'none';
-    document.getElementById('logo-preview-state').style.display = 'block';
-    document.getElementById('logo-upload-area').style.borderColor = 'var(--ok)';
-    document.getElementById('logo-upload-area').style.borderStyle = 'solid';
-  };
-  reader.readAsDataURL(file);
-}
-
-function clearLogoUpload() {
-  pendingLogoData = null;
-  document.getElementById('logo-file-input').value = '';
-  document.getElementById('logo-empty-state').style.display = 'block';
-  document.getElementById('logo-preview-state').style.display = 'none';
-  document.getElementById('logo-upload-area').style.borderColor = 'var(--border)';
-  document.getElementById('logo-upload-area').style.borderStyle = 'dashed';
-}
-
-
-
-function applyLogoEverywhere(src) {
-  // Auth screens
-  const authImgs = document.querySelectorAll('#auth-logo-img');
-  const authDefaults = document.querySelectorAll('#auth-icon-default');
-  authImgs.forEach(function(img) { img.src = src; img.style.display = 'block'; });
-  authDefaults.forEach(function(d) { d.style.display = 'none'; });
-
-  // Sidebar
-  const sbImg = document.getElementById('sb-logo-img');
-  const sbSrc = document.getElementById('sb-logo-src');
-  const sbText = document.getElementById('sb-logo-text');
-  if (sbImg && sbSrc) { sbSrc.src = src; sbImg.style.display = 'block'; }
-  if (sbText) sbText.style.display = 'none';
-}
-
-// ══════════════════════════════════════════════
-// PRODUCT IMAGE HANDLING
-// ══════════════════════════════════════════════
-var pendingProductImage = null; // base64 string
-
-
-
-
-
-
-// ══════════════════════════════════════════════
-// INIT
-// ══════════════════════════════════════════════
-document.addEventListener('DOMContentLoaded', async () => {
-  // Set date
-  const dateEl = document.getElementById('topbar-date');
-  if (dateEl) dateEl.textContent = new Date().toLocaleDateString('en-IN', { weekday:'short', day:'numeric', month:'long', year:'numeric' });
-
-  // Close modals on overlay click
-  document.querySelectorAll('.modal-overlay').forEach(overlay => {
-    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
-  });
-
-  // Always show login first — fast, no network needed
-  showScreen('login');
-
-  // Try to load brand logo (non-blocking, swallow all errors)
-  try { await loadBrandLogo(); } catch(e) {}
-
-  // Try to restore previous session silently
-  try {
-    const saved = loadSession();
-    if (saved && saved.token) {
-      const profiles = await sb.get('profiles', 'id=eq.' + saved.userId + '&select=*', saved.token);
-      if (profiles && profiles.length) {
-        currentUserProfile = profiles[0];
-        currentUser = { email: saved.email, name: profiles[0].name, role: profiles[0].role, ...profiles[0] };
-        await loadAllData();
-        enterApp();
-      } else {
-        clearSession();
-      }
-    }
-  } catch(e) {
-    clearSession(); // bad session, stay on login
-  }
-});
-</script>
+// MOBILE SIDEBAR</script>
 </body>
 </html>
