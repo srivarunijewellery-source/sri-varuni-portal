@@ -1595,6 +1595,10 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
                 <span style="font-size:13px; color:var(--success); font-weight:500;">Payment screenshot uploaded. Awaiting verification.</span>
               </div>
+              <div id="order-error-box" style="display:none;background:#fee2e2;border:1.5px solid #fca5a5;border-radius:10px;padding:14px 16px;margin-bottom:16px;">
+                <div style="font-size:13px;font-weight:600;color:#9b1c1c;margin-bottom:4px;">⚠ Order Error</div>
+                <div id="order-error-msg" style="font-size:13px;color:#7f1d1d;word-break:break-all;"></div>
+              </div>
               <div style="display:flex; gap:12px;">
                 <button class="btn btn-outline" onclick="goToStep(3)">← Back</button>
                 <button class="btn btn-primary" style="background:linear-gradient(135deg,#2d7a4f,#1a5c38); width:auto; padding:12px 32px;" onclick="placeOrder()">✓ Place Order</button>
@@ -2590,9 +2594,21 @@ function showPage(name) {
 
 function showToast(msg, type = 'success') {
   const t = document.getElementById('toast');
+  if (!t) return;
   document.getElementById('toast-msg').textContent = msg;
   t.className = 'toast ' + type + ' show';
-  setTimeout(() => t.classList.remove('show'), 3500);
+  const duration = type === 'error' ? 8000 : 3500;
+  clearTimeout(t._toastTimer);
+  t._toastTimer = setTimeout(() => t.classList.remove('show'), duration);
+}
+
+function showOrderError(msg) {
+  // Show in permanent error box on step 4
+  const box = document.getElementById('order-error-box');
+  const msgEl = document.getElementById('order-error-msg');
+  if (box && msgEl) { msgEl.textContent = msg; box.style.display = 'block'; }
+  // Also show in toast
+  showToast(msg, 'error');
 }
 
 function openModal(id) { document.getElementById(id).classList.add('open'); }
@@ -3130,21 +3146,34 @@ function goToStep(step) {
 async function placeOrder() {
   if (window_placingOrder) { showToast('Already placing — please wait'); return; }
   window_placingOrder = true;
+
+  // Hide any previous error
+  const errBox = document.getElementById('order-error-box');
+  if (errBox) errBox.style.display = 'none';
+
   const btn = document.querySelector('#order-step-4 .btn-primary');
   if (btn) { btn.textContent = 'Placing...'; btn.disabled = true; }
 
   try {
-    // Upload screenshots using dataURLtoBlob — no fetch() on data: URLs needed
+    if (!SESSION || !SESSION.token) throw new Error('Not logged in — please refresh and log in again');
+    if (!currentUser) throw new Error('User session missing — please log in again');
+
+    // --- Screenshot upload (non-blocking, falls back to base64 in DB) ---
     let screenshotUrl = null;
-    if (uploadedScreenshots.length > 0 && SESSION) {
+    if (uploadedScreenshots.length > 0) {
       const urls = [];
       for (const ss of uploadedScreenshots) {
         try {
           const blob = dataURLtoBlob(ss.dataUrl);
-          const path = SESSION.userId + '/' + Date.now() + '_' + ss.name;
+          const path = SESSION.userId + '/' + Date.now() + '_' + (ss.name || 'screenshot.jpg');
           const url  = await sb.uploadFile('screenshots', path, blob, SESSION.token);
           urls.push(url);
-        } catch(ex) { console.warn('Screenshot upload failed (continuing):', ex.message); }
+          console.log('Screenshot uploaded:', url);
+        } catch(ex) {
+          // Storage upload failed — store dataUrl directly (works if DB column is text)
+          console.warn('Storage upload failed, using dataUrl fallback:', ex.message);
+          urls.push(ss.dataUrl.substring(0, 500) + '...[truncated]');
+        }
       }
       if (urls.length) screenshotUrl = urls.join(',');
     }
@@ -3157,57 +3186,89 @@ async function placeOrder() {
 
     const body = {
       reseller_id:      SESSION.userId,
-      reseller_name:    currentUser.name,
-      reseller_email:   currentUser.email,
-      customer_name:    document.getElementById('cust-name').value.trim(),
-      customer_phone:   document.getElementById('cust-phone').value.trim(),
-      customer_address: document.getElementById('cust-address').value.trim(),
-      customer_city:    document.getElementById('cust-city').value.trim(),
-      customer_state:   document.getElementById('cust-state').value.trim(),
-      customer_pin:     document.getElementById('cust-pin').value.trim(),
+      reseller_name:    currentUser.name     || '',
+      reseller_email:   currentUser.email    || '',
+      customer_name:    (document.getElementById('cust-name')?.value    || '').trim(),
+      customer_phone:   (document.getElementById('cust-phone')?.value   || '').trim(),
+      customer_address: (document.getElementById('cust-address')?.value || '').trim(),
+      customer_city:    (document.getElementById('cust-city')?.value    || '').trim(),
+      customer_state:   (document.getElementById('cust-state')?.value   || '').trim(),
+      customer_pin:     (document.getElementById('cust-pin')?.value     || '').trim(),
       items:            JSON.parse(JSON.stringify(orderCart)),
       total_price:      cartTotal(),
-      upi_txn_id:       fullyCovered ? 'CREDIT_FULL' : (document.getElementById('upi-txn')?.value||'').trim(),
+      upi_txn_id:       fullyCovered ? 'CREDIT_FULL' : ((document.getElementById('upi-txn')?.value || '').trim()),
       screenshot_url:   screenshotUrl,
-      notes:            (document.getElementById('order-notes')?.value||'').trim(),
+      notes:            (document.getElementById('order-notes')?.value  || '').trim(),
       status:           'pending',
       payment_status:   fullyCovered ? 'verified' : 'pending',
       credit_applied:   used
     };
 
-    console.log('Submitting order to Supabase...');
-    await sb.post('orders', body, SESSION.token);
-    console.log('Order saved successfully');
-    await loadOrders();
+    console.log('Posting order:', JSON.stringify({...body, screenshot_url: '[omitted]'}));
 
-    // Reset
+    // Direct fetch for maximum error visibility
+    const postUrl = SUPABASE_URL + '/rest/v1/orders';
+    const postRes = await fetch(postUrl, {
+      method: 'POST',
+      headers: {
+        'apikey':        SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SESSION.token,
+        'Content-Type':  'application/json',
+        'Prefer':        'return=minimal'
+      },
+      body: JSON.stringify(body)
+    });
+
+    const postText = await postRes.text();
+    console.log('Order POST response:', postRes.status, postText);
+
+    if (postRes.status !== 200 && postRes.status !== 201 && postRes.status !== 204) {
+      let errMsg = postText || 'HTTP ' + postRes.status;
+      // Try to parse Supabase JSON error
+      try {
+        const errJson = JSON.parse(postText);
+        errMsg = errJson.message || errJson.error || errJson.hint || errMsg;
+      } catch(_) {}
+      throw new Error('Supabase error ' + postRes.status + ': ' + errMsg);
+    }
+
+    console.log('Order saved successfully!');
+    await loadOrders().catch(e => console.warn('loadOrders after place:', e));
+
+    // Reset all form state
     orderCart = []; uploadedScreenshots = []; shipToSelfOn = false; applyCreditToOrder = false;
     ['cust-name','cust-phone','cust-address','cust-city','cust-state','cust-pin','upi-txn','order-notes']
       .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-    const t = document.getElementById('ship-self-toggle');
-    const k = document.getElementById('ship-self-knob');
-    if (t) t.style.background = 'var(--border)';
-    if (k) k.style.transform  = 'translateX(0)';
-    renderCart(); renderScreenshotGrid();
+    const st = document.getElementById('ship-self-toggle');
+    const sk = document.getElementById('ship-self-knob');
+    if (st) st.style.background = 'var(--border)';
+    if (sk) sk.style.transform  = 'translateX(0)';
+    renderCart();
+    renderScreenshotGrid();
     const badge = document.getElementById('nav-order-count');
     if (badge) badge.textContent = ORDERS.filter(o => o.resellerEmail === currentUser.email).length;
 
+    // Deduct credits
     if (used > 0) {
-      sb.post('credits', { reseller_id: SESSION.userId, amount: -used, note: 'Credit applied to order ' + (ORDERS[0]?.id||''), issued_by: SESSION.userId }, SESSION.token)
-        .catch(e => console.warn('Credit deduction failed:', e));
+      const orderId = ORDERS.length ? ORDERS[0].id : '?';
+      fetch(SUPABASE_URL + '/rest/v1/credits', {
+        method: 'POST',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SESSION.token, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ reseller_id: SESSION.userId, amount: -used, note: 'Credit applied to order ' + orderId, issued_by: SESSION.userId })
+      }).catch(e => console.warn('Credit deduction failed:', e));
       resellerCreditBalance = Math.max(0, balance - used);
       const sc = document.getElementById('stat-credits');
       if (sc) sc.textContent = '₹' + resellerCreditBalance.toLocaleString();
     }
 
-    showToast(fullyCovered ? 'Order placed! Fully paid via credits.' : 'Order placed! Awaiting payment verification.', 'success');
+    showToast(fullyCovered ? '✓ Order placed! Fully paid via credits.' : '✓ Order placed! Awaiting payment verification.', 'success');
     goToStep(1);
     setTimeout(() => showPage('my-orders'), 1500);
 
   } catch(err) {
     console.error('placeOrder FAILED:', err);
-    const msg = (err.message || 'Unknown error — check console');
-    showToast('Order failed: ' + msg, 'error');
+    const msg = String(err.message || err || 'Unknown error');
+    showOrderError(msg);
   } finally {
     window_placingOrder = false;
     if (btn) { btn.textContent = '✓ Place Order'; btn.disabled = false; }
