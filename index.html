@@ -1521,6 +1521,26 @@
                 <div style="font-size:28px; font-weight:700; color:var(--purple-dark);" id="payment-amount">₹0</div>
                 <div style="font-size:12px; color:var(--text-light); margin-top:4px;">Pay via UPI to: <strong style="color:var(--purple-dark);">srivaruni@upi</strong></div>
               </div>
+              <!-- Credit balance apply -->
+              <div id="credit-apply-section" style="display:none;margin-bottom:16px;">
+                <div style="background:linear-gradient(135deg,#e8f5ee,#d1fae5);border:1.5px solid #6ee7b7;border-radius:12px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+                  <div>
+                    <div style="font-size:13px;font-weight:600;color:#065f46;">Available Credits: <span id="credit-avail-amount" style="font-family:monospace;">₹0</span></div>
+                    <div style="font-size:11px;color:#047857;margin-top:2px;">Credits will be deducted from your balance and applied to this order</div>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+                    <span style="font-size:12px;color:#065f46;font-weight:600;" id="credit-apply-label">Apply</span>
+                    <div onclick="toggleApplyCredit()" style="width:44px;height:24px;border-radius:12px;background:#d1fae5;border:2px solid #6ee7b7;position:relative;cursor:pointer;transition:background .2s;" id="credit-apply-toggle">
+                      <div style="width:18px;height:18px;background:#fff;border-radius:50%;position:absolute;top:1px;left:1px;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);" id="credit-apply-knob"></div>
+                    </div>
+                  </div>
+                </div>
+                <div id="credit-apply-amount-row" style="display:none;margin-top:8px;background:#fff;border:1px solid #e8d5f0;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:8px;">
+                  <span style="font-size:13px;color:#4a3560;">Credit amount to apply:</span>
+                  <input type="number" id="credit-apply-input" style="width:100px;font-family:monospace;padding:4px 8px;border:1px solid #e8d5f0;border-radius:6px;font-size:13px;" placeholder="0">
+                  <span style="font-size:12px;color:#8b7aa0;">(max ₹<span id="credit-apply-max">0</span>)</span>
+                </div>
+              </div>
               <div class="form-group">
                 <label>UPI Transaction ID</label>
                 <input type="text" id="upi-txn" placeholder="e.g. 123456789012" style="font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;">
@@ -2497,6 +2517,8 @@ let orderCart = [];
 let uploadedScreenshots = [];
 let shipToSelfOn = false;
 let window_placingOrder = false;
+let resellerCreditBalance = 0;
+let applyCreditToOrder = false;
 
 var CATALOG = {};
 var PRODUCTS = {
@@ -2600,35 +2622,42 @@ async function handleSignup() {
   if (pass.length < 8) { showToast('Password must be at least 8 characters', 'error'); return; }
 
   const btn = document.querySelector('#screen-signup .btn-primary');
-  btn.textContent = 'Creating account...'; btn.disabled = true;
+  btn.textContent = 'Submitting...'; btn.disabled = true;
 
   try {
     const result = await sb.signUp(email, pass, { name, phone, business, city, role: 'reseller', status: 'pending' });
-    // Manually insert profile in case trigger doesn't fire
-    if (result && (result.user || result.id)) {
-      const userId = result.user ? result.user.id : result.id;
-      if (userId) {
-        // Upsert profile (insert or update if already exists)
-        const upsertUrl = SUPABASE_URL + '/rest/v1/profiles';
-        await fetch(upsertUrl, {
-          method: 'POST',
-          headers: {
-            'apikey': SUPABASE_KEY,
-            'Authorization': 'Bearer ' + SUPABASE_KEY,
-            'Content-Type': 'application/json',
-            'Prefer': 'resolution=merge-duplicates,return=minimal'
-          },
-          body: JSON.stringify({ id: userId, email, name, phone, business, city, role: 'reseller', status: 'pending' })
-        }).catch(() => {});
-      }
+    console.log('signUp result:', JSON.stringify(result).slice(0, 200));
+
+    // Get user ID from result (Supabase returns different shapes)
+    const userId = result?.user?.id || result?.id || null;
+    console.log('userId:', userId);
+
+    if (userId) {
+      // Always manually upsert profile - don't rely on trigger
+      const r = await fetch(SUPABASE_URL + '/rest/v1/profiles', {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_KEY,
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates,return=minimal'
+        },
+        body: JSON.stringify({ id: userId, email, name, phone, business, city, role: 'reseller', status: 'pending' })
+      });
+      console.log('Profile upsert status:', r.status, await r.text());
+    } else {
+      // No userId means email confirmation is required - profile will be created on confirm
+      console.log('No userId in signup result - email confirmation likely required');
     }
     showScreen('signup-success');
   } catch(err) {
-    showToast(err.message || 'Signup failed', 'error');
+    console.error('Signup error:', err);
+    showToast(err.message || 'Signup failed. Please try again.', 'error');
   } finally {
-    btn.textContent = 'Create Account'; btn.disabled = false;
+    btn.textContent = 'Submit Request'; btn.disabled = false;
   }
 }
+
 
 async function handleForgot() {
   const email = document.getElementById('forgot-email').value.trim();
@@ -3365,14 +3394,66 @@ function removeScreenshot(i) {
 }
 
 
+
+function toggleApplyCredit() {
+  applyCreditToOrder = !applyCreditToOrder;
+  const toggle = document.getElementById('credit-apply-toggle');
+  const knob   = document.getElementById('credit-apply-knob');
+  const label  = document.getElementById('credit-apply-label');
+  const row    = document.getElementById('credit-apply-amount-row');
+  if (toggle) toggle.style.background = applyCreditToOrder ? '#059669' : '#d1fae5';
+  if (toggle) toggle.style.borderColor = applyCreditToOrder ? '#059669' : '#6ee7b7';
+  if (knob)   knob.style.transform = applyCreditToOrder ? 'translateX(20px)' : 'translateX(0)';
+  if (label)  label.textContent = applyCreditToOrder ? 'Applied ✓' : 'Apply';
+  if (row)    row.style.display = applyCreditToOrder ? 'flex' : 'none';
+  if (applyCreditToOrder) {
+    const total = cartTotal();
+    const inp = document.getElementById('credit-apply-input');
+    if (inp) inp.value = Math.min(resellerCreditBalance, total);
+  }
+  // Update payment amount display
+  updatePaymentAmountDisplay();
+}
+
+function updatePaymentAmountDisplay() {
+  const total = cartTotal();
+  const creditUsed = applyCreditToOrder ? 
+    Math.min(parseInt(document.getElementById('credit-apply-input')?.value || 0) || 0, resellerCreditBalance, total) : 0;
+  const payable = Math.max(0, total - creditUsed);
+  const pamount = document.getElementById('payment-amount');
+  if (pamount) {
+    pamount.textContent = '₹' + payable.toLocaleString();
+    if (creditUsed > 0) {
+      pamount.innerHTML = '₹' + payable.toLocaleString() + 
+        ' <span style="font-size:13px;font-weight:400;color:#059669;">(-₹' + creditUsed.toLocaleString() + ' credit applied)</span>';
+    }
+  }
+}
+
 function goToStep(step) {
   if (step === 2 && orderCart.length === 0) { showToast('Add at least one product first', 'error'); return; }
   if (step === 3) {
     if (!document.getElementById('cust-name').value.trim())    { showToast('Enter customer name', 'error'); return; }
     if (!document.getElementById('cust-address').value.trim()) { showToast('Enter delivery address', 'error'); return; }
     if (!document.getElementById('cust-pin').value.trim())     { showToast('Enter pincode', 'error'); return; }
+    const total = cartTotal();
     const pamount = document.getElementById('payment-amount');
-    if (pamount) pamount.textContent = '₹' + cartTotal().toLocaleString();
+    if (pamount) pamount.textContent = '₹' + total.toLocaleString();
+    // Show credit apply section if balance > 0
+    const creditSection = document.getElementById('credit-apply-section');
+    const creditAvail = document.getElementById('credit-avail-amount');
+    const creditMax = document.getElementById('credit-apply-max');
+    if (creditSection) {
+      if (resellerCreditBalance > 0) {
+        creditSection.style.display = 'block';
+        if (creditAvail) creditAvail.textContent = '₹' + resellerCreditBalance.toLocaleString();
+        if (creditMax) creditMax.textContent = Math.min(resellerCreditBalance, total).toLocaleString();
+        const inp = document.getElementById('credit-apply-input');
+        if (inp) inp.max = Math.min(resellerCreditBalance, total);
+      } else {
+        creditSection.style.display = 'none';
+      }
+    }
   }
   if (step === 4) {
     if (uploadedScreenshots.length === 0) { showToast('Please upload at least one payment screenshot', 'error'); return; }
@@ -3442,7 +3523,8 @@ async function placeOrder() {
       screenshot_url:   screenshotUrl,
       notes:            (document.getElementById('order-notes').value||'').trim(),
       status:           'pending',
-      payment_status:   'pending'
+      payment_status:   'pending',
+      credit_applied:   applyCreditToOrder ? (parseInt(document.getElementById('credit-apply-input')?.value||0)||0) : 0
     };
     await sb.post('orders', body, SESSION.token);
     await loadOrders();
@@ -3461,6 +3543,21 @@ async function placeOrder() {
     renderScreenshotGrid();
     const badge = document.getElementById('nav-order-count');
     if (badge) badge.textContent = ORDERS.filter(o => o.resellerEmail === currentUser.email).length;
+    // Deduct credit if applied
+    if (applyCreditToOrder) {
+      const creditUsed = parseInt(document.getElementById('credit-apply-input')?.value||0)||0;
+      if (creditUsed > 0) {
+        sb.post('credits', {
+          reseller_id: SESSION.userId,
+          amount: -creditUsed,
+          note: 'Credit applied to order ' + (ORDERS[0]?.id || ''),
+          issued_by: SESSION.userId
+        }, SESSION.token).catch(e => console.warn('Credit deduction failed:', e));
+        resellerCreditBalance = Math.max(0, resellerCreditBalance - creditUsed);
+        setStat('stat-credits', '₹' + resellerCreditBalance.toLocaleString());
+      }
+      applyCreditToOrder = false;
+    }
     showToast('Order placed! Awaiting payment verification.');
     goToStep(1);
     setTimeout(() => showPage('my-orders'), 1200);
