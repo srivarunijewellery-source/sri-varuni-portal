@@ -2840,7 +2840,7 @@ function viewOrder(orderId) {
       o.items.map(function(it) {
         return '<div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid #f5f0f9">' +
           '<span><code style="font-size:11px;color:var(--purple-light)">' + it.sl + '</code>&nbsp; ' + it.name + '</span>' +
-          '<span style="color:var(--text-mid);white-space:nowrap">' + it.qty + ' &times; &#8377;' + it.price.toLocaleString() + ' = <strong>&#8377;' + (it.qty * it.price).toLocaleString() + '</strong></span>' +
+          '<span style="color:var(--text-mid);white-space:nowrap">' + it.qty + ' &times; ₹' + it.price.toLocaleString() + ' = <strong>₹' + (it.qty * it.price).toLocaleString() + '</strong></span>' +
           '</div>';
       }).join('') + '</div>'
     : '<div class="info-row"><label>Product SL</label><span style="font-family:monospace;font-size:12px">' + (o.sl || '—') + '</span></div>' +
@@ -2853,7 +2853,7 @@ function viewOrder(orderId) {
     '<p class="text-sm text-muted fw-600 mb-16" style="letter-spacing:1px;text-transform:uppercase">Order Info</p>' +
     '<div class="info-row"><label>Order ID</label><span style="font-family:monospace;font-size:12px">' + o.id + '</span></div>' +
     itemsSection +
-    '<div class="info-row"><label>Total</label><span style="font-weight:700;color:var(--purple-dark)">&#8377;' + o.price.toLocaleString() + '</span></div>' +
+    '<div class="info-row"><label>Total</label><span style="font-weight:700;color:var(--purple-dark)">₹' + o.price.toLocaleString() + '</span></div>' +
     '<div class="info-row"><label>Date</label><span>' + (o.date ? formatDate(o.date) : '—') + '</span></div>' +
     '<div class="info-row"><label>UPI Txn ID</label><span style="font-family:monospace;font-size:12px">' + (o.upiTxn || '—') + '</span></div>' +
     '<div class="info-row"><label>Payment</label><span class="badge ' + (o.paymentStatus === 'verified' ? 'badge-delivered' : 'badge-pending') + '">' + (o.paymentStatus === 'verified' ? '&#10003; Verified' : 'Pending') + '</span></div>' +
@@ -3252,10 +3252,10 @@ function renderDashboard() {
     sb.get('credits', 'reseller_id=eq.' + SESSION.userId + '&select=amount', SESSION.token)
       .then(rows => {
         const bal = rows ? rows.reduce((sum, r) => sum + (r.amount || 0), 0) : 0;
-        setStat('stat-credits', '&#8377;' + parseInt(bal).toLocaleString());
+        setStat('stat-credits', '₹' + parseInt(bal).toLocaleString());
       }).catch(err => {
         console.warn('Credits fetch error:', err);
-        setStat('stat-credits', '&#8377;0');
+        setStat('stat-credits', '₹0');
       });
   }
 
@@ -3738,7 +3738,7 @@ async function saveCredit() {
     console.log('saveCredit: insert response', creditRes.status, creditText);
     if (!creditRes.ok && creditRes.status !== 201) throw new Error('Credit insert failed: ' + creditText);
     closeModal('modal-credit');
-    showToast((amount > 0 ? '&#8377;' + amount + ' credit issued to ' : '&#8377;' + Math.abs(amount) + ' deducted from ') + currentCreditReseller.name);
+    showToast((amount > 0 ? '₹' + amount + ' credit issued to ' : '₹' + Math.abs(amount) + ' deducted from ') + currentCreditReseller.name);
   } catch(err) { 
     console.error('saveCredit error:', err);
     showToast('Failed: ' + err.message, 'error'); 
@@ -3775,7 +3775,7 @@ async function viewResellerDetail(email) {
     '<span class="badge ' + (r.status==='active'?'badge-delivered':'badge-pending') + '">' + (r.status==='active'?'Active':'Pending') + '</span>' +
     '<button class="btn btn-gold btn-sm" onclick="closeModal(\'modal-reseller-detail\');openIssueCredit(\'' + email + '\')">+ Issue Credit</button></div>' +
     '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;">' +
-    [['Total Orders', resellerOrders.length, 'var(--pd)'],['Revenue', '&#8377;'+totalRevenue.toLocaleString(), 'var(--ok)'],['Pending', resellerOrders.filter(o=>o.status==='pending').length, 'var(--warning)'],['Credits', '&#8377;'+creditBalance.toLocaleString(), creditBalance>=0?'var(--ok)':'var(--err)']].map(([l,v,col]) =>
+    [['Total Orders', resellerOrders.length, 'var(--pd)'],['Revenue', '₹'+totalRevenue.toLocaleString(), 'var(--ok)'],['Pending', resellerOrders.filter(o=>o.status==='pending').length, 'var(--warning)'],['Credits', '₹'+creditBalance.toLocaleString(), creditBalance>=0?'var(--ok)':'var(--err)']].map(([l,v,col]) =>
       '<div style="background:#faf8fc;border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;">' +
       '<div style="font-size:20px;font-weight:700;color:'+col+';">'+v+'</div>' +
       '<div style="font-size:11px;color:var(--tl);margin-top:2px;">'+l+'</div></div>'
@@ -3791,7 +3791,7 @@ async function viewResellerDetail(email) {
     '</div></div>' +
     // Credits history
     '<div class="card"><div class="card-header" style="padding:12px 18px;"><h3 class="card-title" style="font-size:14px;">Credits History</h3></div><div style="padding:0 18px;max-height:200px;overflow-y:auto;">' +
-    (credits.length ? credits.map(cr => '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);"><div><div style="font-size:12px;">'+cr.note+'</div><div style="font-size:10px;color:var(--tl);">'+new Date(cr.created_at).toLocaleDateString('en-IN')+'</div></div><div style="font-weight:700;color:'+(cr.amount>=0?'var(--ok)':'var(--err)')+';">'+(cr.amount>=0?'+':'')+'&#8377;'+Math.abs(cr.amount).toLocaleString()+'</div></div>').join('') : '<p style="font-size:12px;color:var(--tl);padding:12px 0;">No credits issued yet</p>') +
+    (credits.length ? credits.map(cr => '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);"><div><div style="font-size:12px;">'+cr.note+'</div><div style="font-size:10px;color:var(--tl);">'+new Date(cr.created_at).toLocaleDateString('en-IN')+'</div></div><div style="font-weight:700;color:'+(cr.amount>=0?'var(--ok)':'var(--err)')+';">'+(cr.amount>=0?'+':'')+'₹'+Math.abs(cr.amount).toLocaleString()+'</div></div>').join('') : '<p style="font-size:12px;color:var(--tl);padding:12px 0;">No credits issued yet</p>') +
     '</div></div></div>' +
     // Orders table
     '<div class="card" style="margin-top:16px;"><div class="card-header" style="padding:12px 18px;"><h3 class="card-title" style="font-size:14px;">Orders ('+resellerOrders.length+')</h3></div><div style="overflow-x:auto;">' +
@@ -3801,7 +3801,7 @@ async function viewResellerDetail(email) {
     (resellerOrders.slice(0,15).map(o => '<tr style="cursor:pointer;" onclick="closeModal(\'modal-reseller-detail\');viewOrder(\''+o.id+'\')">' +
       '<td style="padding:9px 14px;border-bottom:1px solid #f5f0f9;font-family:monospace;font-size:11px;color:var(--pl);">'+o.id+'</td>' +
       '<td style="padding:9px 14px;border-bottom:1px solid #f5f0f9;font-size:12px;">'+o.product+'</td>' +
-      '<td style="padding:9px 14px;border-bottom:1px solid #f5f0f9;font-weight:600;font-size:12px;">&#8377;'+o.price.toLocaleString()+'</td>' +
+      '<td style="padding:9px 14px;border-bottom:1px solid #f5f0f9;font-weight:600;font-size:12px;">₹'+o.price.toLocaleString()+'</td>' +
       '<td style="padding:9px 14px;border-bottom:1px solid #f5f0f9;">'+statusBadge(o.status)+'</td>' +
       '<td style="padding:9px 14px;border-bottom:1px solid #f5f0f9;font-size:11px;color:var(--tl);">'+(o.date?formatDate(o.date):'—')+'</td></tr>').join('') || '<tr><td colspan="5" style="padding:16px;text-align:center;color:var(--tl);">No orders yet</td></tr>') +
     '</tbody></table></div></div>';
@@ -4107,7 +4107,7 @@ function renderAdminInvoices() { renderInvoices('admin'); }
 function buildInvoiceRows(o) {
   const rows = (o.items && o.items.length > 1) ? o.items : [{sl: o.sl, name: o.product, qty: o.qty, price: Math.round(o.price / o.qty)}];
   return rows.map(function(item) {
-    return '<tr><td style="font-family:monospace;font-size:12px">' + item.sl + '</td><td>' + item.name + '</td><td>' + item.qty + '</td><td>&#8377;' + item.price.toLocaleString() + '</td><td>&#8377;' + (item.price * item.qty).toLocaleString() + '</td></tr>';
+    return '<tr><td style="font-family:monospace;font-size:12px">' + item.sl + '</td><td>' + item.name + '</td><td>' + item.qty + '</td><td>₹' + item.price.toLocaleString() + '</td><td>₹' + (item.price * item.qty).toLocaleString() + '</td></tr>';
   }).join('');
 }
 
