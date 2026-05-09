@@ -1,0 +1,2415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Lora:wght@400;500;600&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sri Varuni Partner Portal</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root {
+    --purple-dark: #2d1b3d;
+    --purple-mid: #3d2456;
+    --purple-light: #5a3578;
+    --gold: #c9a96e;
+    --gold-light: #e8c98a;
+    --gold-pale: #f5e6c8;
+    --cream: #fdf6ec;
+    --white: #ffffff;
+    --text-dark: #1a0f2e;
+    --text-mid: #4a3560;
+    --text-light: #8b7aa0;
+    --border: #e8d5f0;
+    --success: #2d7a4f;
+    --success-bg: #e8f5ee;
+    --warning: #b45309;
+    --warning-bg: #fef3c7;
+    --danger: #9b1c1c;
+    --danger-bg: #fee2e2;
+    --shadow-sm: 0 1px 3px rgba(45,27,61,0.08);
+    --shadow-md: 0 4px 16px rgba(45,27,61,0.12);
+    --shadow-lg: 0 12px 40px rgba(45,27,61,0.18);
+    --radius: 12px;
+    --radius-sm: 8px;
+    /* Short aliases used in dynamic JS-generated HTML */
+    --pd: #2d1b3d;
+    --pm: #3d2456;
+    --pl: #5a3578;
+    --goldl: #e8c98a;
+    --td: #1a0f2e;
+    --tm: #4a3560;
+    --tl: #8b7aa0;
+    --ok: #2d7a4f;
+    --okbg: #e8f5ee;
+    --warn: #b45309;
+    --warnbg: #fef3c7;
+    --err: #9b1c1c;
+    --errbg: #fee2e2;
+    --r: 12px;
+    --rs: 8px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Nunito Sans', -apple-system, Arial, sans-serif;
+    background: var(--cream);
+    color: var(--text-dark);
+    min-height: 100vh;
+    font-size: 14px;
+  }
+
+  /* ── SCREENS ── */
+  .screen { display: none; min-height: 100vh; }
+  .screen.active { display: flex; }
+
+  /* ── AUTH SCREENS ── */
+  #screen-login, #screen-signup, #screen-forgot {
+    background: linear-gradient(135deg, var(--purple-dark) 0%, var(--purple-mid) 50%, #1a0f2e 100%);
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  #screen-login::before, #screen-signup::before, #screen-forgot::before {
+    content: '';
+    position: absolute;
+    width: 600px; height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(201,169,110,0.08) 0%, transparent 70%);
+    top: -200px; right: -200px;
+  }
+
+  .auth-card {
+    background: rgba(255,255,255,0.97);
+    border-radius: 20px;
+    padding: 48px 40px;
+    width: 100%;
+    max-width: 440px;
+    box-shadow: var(--shadow-lg), 0 0 0 1px rgba(201,169,110,0.2);
+    position: relative;
+    z-index: 1;
+  }
+
+  .auth-logo {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  .auth-logo .brand-icon {
+    width: 56px; height: 56px;
+    background: linear-gradient(135deg, var(--purple-dark), var(--purple-mid));
+    border-radius: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+    box-shadow: 0 8px 24px rgba(45,27,61,0.3);
+  }
+
+  .auth-logo .brand-icon svg { width: 28px; height: 28px; }
+
+  .auth-logo h1 {
+    font-family: 'Lora', Georgia, serif;
+    font-size: 22px;
+    color: var(--purple-dark);
+    letter-spacing: 0.3px;
+  }
+
+  .auth-logo p {
+    font-size: 11px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-top: 2px;
+    font-weight: 500;
+  }
+
+  .auth-title {
+    font-family: 'Lora', Georgia, serif;
+    font-size: 30px;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 6px;
+    letter-spacing: -0.3px;
+  }
+
+  .auth-sub {
+    color: var(--text-light);
+    font-size: 13px;
+    margin-bottom: 28px;
+  }
+
+  .form-group { margin-bottom: 18px; }
+
+  .form-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--text-mid);
+    margin-bottom: 7px;
+  }
+
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: 'Nunito Sans', -apple-system, Arial, sans-serif;
+    font-size: 14px;
+    color: var(--text-dark);
+    background: #fff;
+    transition: all 0.2s;
+    outline: none;
+  }
+
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    border-color: var(--purple-light);
+    box-shadow: 0 0 0 3px rgba(90,53,120,0.1);
+  }
+
+  .form-group textarea { resize: vertical; min-height: 80px; }
+
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 13px 24px;
+    border-radius: var(--radius-sm);
+    font-family: 'Nunito Sans', -apple-system, Arial, sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    text-decoration: none;
+    letter-spacing: 0.2px;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--purple-dark) 0%, var(--purple-mid) 100%);
+    color: #fff;
+    width: 100%;
+    padding: 14px;
+    font-size: 15px;
+    box-shadow: 0 4px 14px rgba(45,27,61,0.35);
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(45,27,61,0.45);
+  }
+
+  .btn-gold {
+    background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%);
+    color: var(--purple-dark);
+    box-shadow: 0 4px 14px rgba(201,169,110,0.3);
+  }
+
+  .btn-gold:hover { transform: translateY(-1px); }
+
+  .btn-outline {
+    background: transparent;
+    border: 1.5px solid var(--border);
+    color: var(--text-mid);
+  }
+
+  .btn-outline:hover { border-color: var(--purple-light); color: var(--purple-light); }
+
+  .btn-sm { padding: 8px 16px; font-size: 13px; }
+  .btn-danger { background: var(--danger-bg); color: var(--danger); border: 1.5px solid #fca5a5; }
+  .btn-success { background: var(--success-bg); color: var(--success); border: 1.5px solid #86efac; }
+
+  .auth-link {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 13px;
+    color: var(--text-light);
+  }
+
+  .auth-link a {
+    color: var(--purple-light);
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+  }
+
+  .auth-link a:hover { text-decoration: underline; }
+
+  .divider {
+    text-align: center;
+    position: relative;
+    margin: 20px 0;
+    color: var(--text-light);
+    font-size: 12px;
+  }
+
+  .divider::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 50%;
+    width: 100%; height: 1px;
+    background: var(--border);
+  }
+
+  .divider span {
+    background: #fff;
+    padding: 0 12px;
+    position: relative;
+  }
+
+  /* ── APP LAYOUT ── */
+  #screen-app {
+    flex-direction: row;
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 260px;
+    min-width: 260px;
+    background: linear-gradient(180deg, var(--purple-dark) 0%, #1a0f2e 100%);
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    position: fixed;
+    top: 0; left: 0;
+    height: 100vh;
+    z-index: 100;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.2);
+  }
+
+  .sidebar-logo {
+    padding: 28px 24px 20px;
+    border-bottom: 1px solid rgba(201,169,110,0.15);
+  }
+
+  .sidebar-logo h2 {
+    font-family: 'Lora', Georgia, serif;
+    font-size: 18px;
+    color: #fff;
+    line-height: 1.3;
+  }
+
+  .sidebar-logo p {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-top: 2px;
+  }
+
+  .sidebar-user {
+    padding: 16px 24px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .user-avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--purple-dark);
+    flex-shrink: 0;
+  }
+
+  .user-info { flex: 1; min-width: 0; }
+  .user-name { font-size: 13px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .user-role { font-size: 11px; color: rgba(255,255,255,0.4); }
+
+  .sidebar-nav { flex: 1; padding: 16px 12px; overflow-y: auto; }
+
+  .nav-section-label {
+    font-size: 10px;
+    letter-spacing: 1.8px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.3);
+    padding: 12px 12px 6px;
+    font-weight: 600;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    color: rgba(255,255,255,0.6);
+    font-size: 13.5px;
+    font-weight: 500;
+    transition: all 0.2s;
+    margin-bottom: 2px;
+    position: relative;
+  }
+
+  .nav-item:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.9); }
+
+  .nav-item.active {
+    background: linear-gradient(135deg, rgba(201,169,110,0.2), rgba(201,169,110,0.1));
+    color: var(--gold-light);
+    box-shadow: inset 0 0 0 1px rgba(201,169,110,0.2);
+  }
+
+  .nav-item svg { width: 17px; height: 17px; flex-shrink: 0; }
+
+  .nav-badge {
+    margin-left: auto;
+    background: var(--gold);
+    color: var(--purple-dark);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 20px;
+  }
+
+  .sidebar-footer {
+    padding: 16px 12px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+
+  /* MAIN CONTENT */
+  .main-content {
+    margin-left: 260px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  .topbar {
+    background: #fff;
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .topbar-title {
+    font-family: 'Lora', Georgia, serif;
+    font-size: 20px;
+    color: var(--text-dark);
+  }
+
+  .topbar-actions { display: flex; align-items: center; gap: 12px; }
+
+  .page-content { padding: 28px 32px; flex: 1; }
+
+  /* ── PAGES ── */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* DASHBOARD */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+    margin-bottom: 28px;
+  }
+
+  .stat-card {
+    background: #fff;
+    border-radius: var(--radius);
+    padding: 22px 24px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 80px; height: 80px;
+    border-radius: 0 0 0 80px;
+    opacity: 0.06;
+  }
+
+  .stat-card.purple::before { background: var(--purple-dark); }
+  .stat-card.gold::before { background: var(--gold); }
+  .stat-card.green::before { background: #2d7a4f; }
+  .stat-card.blue::before { background: #1e40af; }
+
+  .stat-icon {
+    width: 38px; height: 38px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 14px;
+  }
+
+  .stat-icon svg { width: 18px; height: 18px; }
+  .stat-icon.purple { background: rgba(45,27,61,0.08); color: var(--purple-dark); }
+  .stat-icon.gold { background: rgba(201,169,110,0.15); color: var(--gold); }
+  .stat-icon.green { background: rgba(45,122,79,0.1); color: #2d7a4f; }
+  .stat-icon.blue { background: rgba(30,64,175,0.1); color: #1e40af; }
+
+  .stat-value { font-size: 28px; font-weight: 700; color: var(--text-dark); line-height: 1; margin-bottom: 4px; }
+  .stat-label { font-size: 12px; color: var(--text-light); font-weight: 500; }
+  .stat-change { font-size: 11px; color: var(--success); margin-top: 6px; font-weight: 500; }
+
+  /* CARDS */
+  .card {
+    background: #fff;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .card-header {
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .card-title {
+    font-family: 'Lora', Georgia, serif;
+    font-size: 16px;
+    color: var(--text-dark);
+  }
+
+  .card-body { padding: 24px; }
+
+  /* TABLE */
+  .table-wrap { overflow-x: auto; }
+
+  table { width: 100%; border-collapse: collapse; }
+
+  thead th {
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text-light);
+    background: #faf8fc;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  tbody td {
+    padding: 14px 16px;
+    border-bottom: 1px solid #f5f0f9;
+    font-size: 13.5px;
+    color: var(--text-dark);
+    vertical-align: middle;
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: #faf8fc; }
+
+  /* BADGES */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+
+  .badge-pending { background: var(--warning-bg); color: var(--warning); }
+  .badge-confirmed { background: #dbeafe; color: #1d4ed8; }
+  .badge-shipped { background: #e0e7ff; color: #4338ca; }
+  .badge-delivered { background: var(--success-bg); color: var(--success); }
+  .badge-cancelled { background: var(--danger-bg); color: var(--danger); }
+
+  .badge-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  /* ORDER FORM */
+  .order-steps {
+    display: flex;
+    gap: 0;
+    margin-bottom: 28px;
+  }
+
+  .step {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 20px;
+    background: #fff;
+    border: 1px solid var(--border);
+    position: relative;
+  }
+
+  .step:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+  .step:last-child { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+
+  .step.active { background: var(--purple-dark); border-color: var(--purple-dark); }
+  .step.done { background: var(--success-bg); border-color: #86efac; }
+
+  .step-num {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-light);
+    flex-shrink: 0;
+  }
+
+  .step.active .step-num { background: var(--gold); color: var(--purple-dark); }
+  .step.done .step-num { background: var(--success); color: #fff; }
+
+  .step-label { font-size: 13px; font-weight: 600; color: var(--text-light); }
+  .step.active .step-label { color: #fff; }
+  .step.done .step-label { color: var(--success); }
+
+  .upload-area {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .upload-area:hover { border-color: var(--purple-light); background: rgba(90,53,120,0.02); }
+  .upload-area input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .upload-area svg { width: 36px; height: 36px; color: var(--text-light); margin: 0 auto 10px; display: block; }
+  .upload-area p { color: var(--text-light); font-size: 13px; }
+  .upload-area strong { color: var(--purple-light); }
+
+  .upload-preview {
+    display: none;
+    align-items: center;
+    gap: 14px;
+    padding: 14px;
+    background: var(--success-bg);
+    border-radius: var(--radius-sm);
+    border: 1px solid #86efac;
+    margin-top: 12px;
+  }
+
+  .upload-preview.show { display: flex; }
+  .upload-preview img { width: 56px; height: 56px; object-fit: cover; border-radius: 6px; }
+  .upload-preview span { font-size: 13px; color: var(--success); font-weight: 500; }
+
+  /* PRODUCT LOOKUP */
+  .product-preview {
+    display: none;
+    background: linear-gradient(135deg, #faf8fc, #f5f0f9);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    margin-top: 14px;
+    align-items: center;
+    gap: 18px;
+  }
+
+  .product-preview.show { display: flex; }
+
+  .product-thumb {
+    width: 64px; height: 64px;
+    background: linear-gradient(135deg, var(--purple-light), var(--purple-dark));
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .product-thumb svg { width: 28px; height: 28px; color: var(--gold); }
+
+  .product-info h4 { font-size: 15px; font-weight: 600; color: var(--text-dark); margin-bottom: 4px; }
+  .product-info p { font-size: 12px; color: var(--text-light); }
+  .product-price { margin-left: auto; text-align: right; }
+  .product-price strong { font-size: 20px; color: var(--purple-dark); font-weight: 700; }
+  .product-price span { font-size: 11px; color: var(--text-light); display: block; }
+
+  /* INVOICE */
+  .invoice-preview {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 36px;
+    max-width: 680px;
+  }
+
+  .invoice-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; }
+  .invoice-brand h2 { font-family: 'Lora', Georgia, serif; font-size: 24px; color: var(--purple-dark); }
+  .invoice-brand p { font-size: 12px; color: var(--text-light); margin-top: 2px; }
+  .invoice-meta { text-align: right; }
+  .invoice-meta h3 { font-size: 28px; font-weight: 700; color: var(--text-dark); letter-spacing: -0.5px; }
+  .invoice-meta p { font-size: 12px; color: var(--text-light); }
+  .invoice-meta .inv-num { font-size: 13px; color: var(--purple-light); font-weight: 600; font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; }
+
+  .invoice-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 28px; }
+  .invoice-party label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gold); font-weight: 600; margin-bottom: 8px; display: block; }
+  .invoice-party h4 { font-size: 14px; font-weight: 600; color: var(--text-dark); margin-bottom: 3px; }
+  .invoice-party p { font-size: 12px; color: var(--text-light); line-height: 1.6; }
+
+  .invoice-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+  .invoice-table th { padding: 10px 14px; background: var(--purple-dark); color: #fff; font-size: 11px; letter-spacing: 0.8px; text-transform: uppercase; text-align: left; }
+  .invoice-table th:last-child, .invoice-table td:last-child { text-align: right; }
+  .invoice-table td { padding: 12px 14px; border-bottom: 1px solid var(--border); font-size: 13px; }
+
+  .invoice-totals { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  .invoice-total-row { display: flex; gap: 40px; font-size: 13px; color: var(--text-mid); }
+  .invoice-total-row span:last-child { width: 90px; text-align: right; font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; }
+  .invoice-grand { font-size: 16px; font-weight: 700; color: var(--purple-dark); border-top: 2px solid var(--purple-dark); padding-top: 8px; margin-top: 4px; }
+
+  .invoice-footer { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-light); text-align: center; }
+
+  /* SHIPPING LABEL */
+  .label-preview {
+    background: #fff;
+    border: 2px solid var(--text-dark);
+    border-radius: 8px;
+    padding: 24px;
+    max-width: 400px;
+    font-family: 'Nunito Sans', -apple-system, Arial, sans-serif;
+  }
+
+  .label-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 14px; border-bottom: 2px solid var(--text-dark); }
+  .label-brand { font-family: 'Lora', Georgia, serif; font-size: 18px; color: var(--purple-dark); }
+  .label-order { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; font-size: 12px; background: var(--purple-dark); color: #fff; padding: 4px 10px; border-radius: 4px; }
+  .label-to label { font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-light); }
+  .label-to h3 { font-size: 18px; font-weight: 700; margin: 4px 0; }
+  .label-to p { font-size: 13px; color: var(--text-mid); line-height: 1.5; }
+  .label-barcode { text-align: center; margin: 14px 0; font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; letter-spacing: 4px; font-size: 20px; color: var(--text-dark); }
+  .label-from { font-size: 11px; color: var(--text-light); border-top: 1px dashed var(--border); padding-top: 12px; margin-top: 4px; }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(26,15,46,0.6);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    backdrop-filter: blur(4px);
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: #fff;
+    border-radius: 18px;
+    width: 100%;
+    max-width: 640px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: var(--shadow-lg);
+    animation: modalIn 0.25s ease;
+  }
+
+  @keyframes modalIn {
+    from { opacity: 0; transform: translateY(16px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .modal-header {
+    padding: 22px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    background: #fff;
+    z-index: 1;
+  }
+
+  .modal-header h3 { font-family: 'Lora', Georgia, serif; font-size: 18px; }
+
+  .modal-close {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-light);
+    font-size: 18px;
+    transition: all 0.2s;
+  }
+
+  .modal-close:hover { background: var(--danger-bg); color: var(--danger); border-color: #fca5a5; }
+
+  .modal-body { padding: 28px; }
+  .modal-footer { padding: 18px 28px; border-top: 1px solid var(--border); display: flex; gap: 12px; justify-content: flex-end; }
+
+  /* ALERTS */
+  .alert {
+    display: none;
+    padding: 12px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    margin-bottom: 16px;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .alert.show { display: flex; }
+  .alert-success { background: var(--success-bg); color: var(--success); border: 1px solid #86efac; }
+  .alert-error { background: var(--danger-bg); color: var(--danger); border: 1px solid #fca5a5; }
+
+  /* TABS */
+  .tabs { display: flex; gap: 4px; border-bottom: 2px solid var(--border); margin-bottom: 24px; }
+  .tab { padding: 10px 18px; font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text-light); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
+  .tab.active { color: var(--purple-dark); border-bottom-color: var(--purple-dark); font-weight: 600; }
+  .tab:hover { color: var(--text-dark); }
+
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  /* MISC */
+  .empty-state { text-align: center; padding: 48px 24px; }
+  .empty-state svg { width: 48px; height: 48px; color: var(--border); margin: 0 auto 14px; display: block; }
+  .empty-state h3 { font-size: 16px; color: var(--text-mid); margin-bottom: 6px; }
+  .empty-state p { font-size: 13px; color: var(--text-light); }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+
+  .text-sm { font-size: 12px; }
+  .text-muted { color: var(--text-light); }
+  .text-gold { color: var(--gold); }
+  .text-purple { color: var(--purple-dark); }
+  .fw-600 { font-weight: 600; }
+  .mt-4 { margin-top: 4px; }
+  .mt-8 { margin-top: 8px; }
+  .mt-16 { margin-top: 16px; }
+  .mt-24 { margin-top: 24px; }
+  .mb-16 { margin-bottom: 16px; }
+  .mb-24 { margin-bottom: 24px; }
+  .flex { display: flex; }
+  .items-center { align-items: center; }
+  .gap-8 { gap: 8px; }
+  .gap-12 { gap: 12px; }
+  .justify-between { justify-content: space-between; }
+  .w-full { width: 100%; }
+
+  .info-row { display: flex; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .info-row:last-child { border-bottom: none; }
+  .info-row label { font-size: 11px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: var(--text-light); min-width: 130px; padding-top: 1px; }
+  .info-row span { font-size: 13px; color: var(--text-dark); font-weight: 500; }
+
+  /* NOTIFICATION TOAST */
+  .toast {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    background: var(--purple-dark);
+    color: #fff;
+    padding: 14px 20px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 500;
+    box-shadow: var(--shadow-lg);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    max-width: 340px;
+  }
+
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { background: var(--success); }
+  .toast.error { background: var(--danger); }
+
+  /* ADMIN BADGE */
+  .admin-bar {
+    background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    padding: 8px 32px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--purple-dark);
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .order-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin-bottom: 14px;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+
+  .order-card:hover { box-shadow: var(--shadow-md); border-color: var(--purple-light); transform: translateY(-1px); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-light); }
+
+  /* ── MOBILE HAMBURGER ── */
+  .hamburger {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: none;
+  }
+  .hamburger span {
+    display: block;
+    width: 20px; height: 2px;
+    background: var(--text-dark);
+    border-radius: 2px;
+    transition: all 0.25s;
+  }
+
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(26,15,46,0.55);
+    z-index: 99;
+    backdrop-filter: blur(2px);
+  }
+  .sidebar-overlay.open { display: block; }
+
+  /* ── MOBILE RESPONSIVE ── */
+  @media (max-width: 768px) {
+    /* Hamburger visible */
+    .hamburger { display: flex; }
+
+    /* Sidebar slides in/out */
+    .sidebar {
+      transform: translateX(-100%);
+      transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+      width: 280px;
+      z-index: 200;
+    }
+    .sidebar.open { transform: translateX(0); }
+
+    /* Main fills full width */
+    .main-content { margin-left: 0; }
+
+    /* Topbar padding */
+    .topbar { padding: 0 16px; }
+    .page-content { padding: 16px; }
+
+    /* Auth cards full width */
+    .auth-card { padding: 32px 22px; }
+
+    /* Stats grid: 2 cols on mobile */
+    .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+    .stat-value { font-size: 20px; }
+    .stat-card { padding: 14px 16px; }
+    .stat-icon { width: 32px; height: 32px; margin-bottom: 10px; }
+
+    /* 2-col grids become 1-col */
+    .grid-2 { grid-template-columns: 1fr; gap: 14px; }
+    .form-row { grid-template-columns: 1fr; gap: 0; }
+    
+    /* Order steps scroll */
+    .order-steps { gap: 0; }
+    .step { min-width: 70px; padding: 8px 10px; }
+    .step-label { font-size: 10px; }
+    
+    /* Sidebar logo smaller */
+    .sidebar-logo h2 { font-size: 15px; }
+    
+    /* Topbar tighter */
+    .topbar { padding: 0 12px; height: 56px; }
+    
+    /* Page content less padding */
+    .page-content { padding: 12px 14px; }
+    
+    /* Auth card padding */
+    .auth-card { padding: 28px 18px; }
+    
+    /* Profile banner smaller */
+    #page-my-profile > div:first-child { padding: 16px 18px; }
+
+    /* Order steps compact */
+    .order-steps { overflow-x: auto; }
+    .step { padding: 10px 12px; min-width: 80px; }
+    .step-label { font-size: 11px; }
+
+    /* Tables scroll horizontally */
+    .table-wrap { -webkit-overflow-scrolling: touch; }
+    thead th, tbody td { padding: 10px 12px; font-size: 12px; }
+
+    /* Modal full-screen on mobile */
+    .modal-overlay { padding: 0; align-items: flex-end; }
+    .modal {
+      border-radius: 20px 20px 0 0;
+      max-height: 92vh;
+      width: 100%;
+    }
+
+    /* Toast bottom center */
+    .toast { right: 16px; left: 16px; max-width: none; bottom: 16px; }
+
+    /* Profile grid single col */
+    #page-my-profile > div:last-child { grid-template-columns: 1fr; }
+
+    /* Admin bar compact */
+    .admin-bar { padding: 8px 16px; font-size: 11px; }
+
+    /* Topbar title font size */
+    .topbar-title { font-size: 17px; }
+
+    /* Card body padding */
+    .card-body { padding: 16px; }
+    .card-header { padding: 14px 16px; }
+    .modal-body { padding: 20px 18px; }
+    .modal-footer { padding: 14px 18px; }
+  }
+
+  @media (max-width: 480px) {
+    .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .stat-card { padding: 14px 16px; }
+    .stat-value { font-size: 20px; }
+    .stat-label { font-size: 11px; }
+  }
+</style>
+</head>
+<body data-version="sv-portal-v3.0">
+
+<!-- ══════════════════════════════════════════════
+     SCREEN: LOGIN
+══════════════════════════════════════════════ -->
+<div id="screen-login" class="screen active">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div id="auth-logo-dynamic" style="margin-bottom:4px;">
+        <!-- replaced by JS when logo uploaded -->
+        <div class="brand-icon" id="auth-icon-default">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#c9a96e" stroke-width="1.5">
+            <path d="M12 2L8 7H2l4 4-2 7 8-4 8 4-2-7 4-4h-6L12 2z"/>
+          </svg>
+        </div>
+        <img id="auth-logo-img" src="" alt="Sri Varuni" style="display:none;max-height:56px;max-width:200px;object-fit:contain;">
+      </div>
+      <h1 style="font-family: 'Nunito Sans', -apple-system, Arial, sans-serif;font-size:26px;font-weight:600;letter-spacing:0.3px;">Sri Varuni</h1>
+      <p>Partner Portal</p>
+    </div>
+    <h2 class="auth-title">Welcome back</h2>
+    <p class="auth-sub">Sign in to your reseller account</p>
+
+    <div id="login-alert" class="alert alert-error">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <span id="login-alert-msg">Invalid email or password.</span>
+    </div>
+    <div id="debug-panel" style="display:none;margin-bottom:12px;background:#1a0f2e;border-radius:8px;padding:12px;font-family:monospace;font-size:11px;color:#86efac;max-height:160px;overflow-y:auto;white-space:pre-wrap;"></div>
+
+    <div class="form-group">
+      <label>Email Address</label>
+      <input type="email" id="login-email" placeholder="you@example.com" value="reseller@demo.com">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="login-password" placeholder="••••••••" value="demo123">
+    </div>
+    <div style="text-align:right; margin-bottom:20px;">
+      <a onclick="showScreen('forgot')" style="font-size:13px; color:var(--purple-light); cursor:pointer; font-weight:500;">Forgot password?</a>
+    </div>
+    <button class="btn btn-primary" onclick="handleLogin()">Sign In to Portal</button>
+    <div class="auth-link">
+      New reseller? <a onclick="showScreen('signup')">Request Access</a>
+    </div>
+    <div class="divider"><span>or</span></div>
+    <button class="btn btn-outline w-full" onclick="handleAdminLogin()" style="font-size:13px;">
+      🔐 Admin / Owner Login
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SCREEN: SIGNUP
+══════════════════════════════════════════════ -->
+<div id="screen-signup" class="screen">
+  <div class="auth-card" style="max-width:500px;">
+    <div class="auth-logo">
+      <div id="auth-logo-dynamic" style="margin-bottom:4px;">
+        <!-- replaced by JS when logo uploaded -->
+        <div class="brand-icon" id="auth-icon-default">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#c9a96e" stroke-width="1.5">
+            <path d="M12 2L8 7H2l4 4-2 7 8-4 8 4-2-7 4-4h-6L12 2z"/>
+          </svg>
+        </div>
+        <img id="auth-logo-img" src="" alt="Sri Varuni" style="display:none;max-height:56px;max-width:200px;object-fit:contain;">
+      </div>
+      <h1 style="font-family: 'Nunito Sans', -apple-system, Arial, sans-serif;font-size:26px;font-weight:600;letter-spacing:0.3px;">Sri Varuni</h1>
+      <p>Partner Portal</p>
+    </div>
+    <h2 class="auth-title">Request Access</h2>
+    <p class="auth-sub">Create your reseller account</p>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" id="su-name" placeholder="Your name">
+      </div>
+      <div class="form-group">
+        <label>Phone Number</label>
+        <input type="tel" id="su-phone" placeholder="+91 98765 43210">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Email Address</label>
+      <input type="email" id="su-email" placeholder="you@example.com">
+    </div>
+    <div class="form-group">
+      <label>Business / Shop Name</label>
+      <input type="text" id="su-business" placeholder="Your shop name">
+    </div>
+    <div class="form-group">
+      <label>City</label>
+      <input type="text" id="su-city" placeholder="Mumbai, Surat, etc.">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="su-pass" placeholder="Min. 8 characters">
+      </div>
+      <div class="form-group">
+        <label>Confirm Password</label>
+        <input type="password" id="su-pass2" placeholder="Repeat password">
+      </div>
+    </div>
+    <div style="background:var(--warning-bg);border:1px solid #fde68a;border-radius:var(--radius-sm);padding:11px 14px;margin-bottom:16px;display:flex;gap:9px;align-items:flex-start;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2" style="flex-shrink:0;margin-top:1px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <span style="font-size:12px;color:var(--warning);line-height:1.5;">Your account requires <strong>admin approval</strong> before you can login. You'll receive your login credentials once approved.</span>
+    </div>
+    <button class="btn btn-primary" onclick="handleSignup()">Submit Request</button>
+    <div class="auth-link">
+      Already have an account? <a onclick="showScreen('login')">Sign In</a>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SCREEN: FORGOT PASSWORD
+══════════════════════════════════════════════ -->
+<div id="screen-signup-success" class="screen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div id="auth-logo-dynamic" style="margin-bottom:4px;">
+        <div class="brand-icon" id="auth-icon-default">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#c9a96e" stroke-width="1.5">
+            <path d="M12 2L8 7H2l4 4-2 7 8-4 8 4-2-7 4-4h-6L12 2z"/>
+          </svg>
+        </div>
+        <img id="auth-logo-img" src="" alt="Sri Varuni" style="display:none;max-height:56px;max-width:200px;object-fit:contain;">
+      </div>
+      <h1 style="font-family:Georgia,serif;font-size:26px;font-weight:600;color:var(--purple-dark);">Sri Varuni</h1>
+      <p>Partner Portal</p>
+    </div>
+    <div style="text-align:center;margin-bottom:24px;">
+      <div style="width:64px;height:64px;background:var(--okbg);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <h2 style="font-family:Georgia,serif;font-size:22px;color:var(--td);margin-bottom:8px;">Request Submitted!</h2>
+      <p style="font-size:13px;color:var(--tl);line-height:1.6;">Your reseller account request has been received. Our team will review and activate your account shortly.</p>
+    </div>
+    <div style="background:linear-gradient(135deg,#faf8fc,#f5f0f9);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:20px;">
+      <div style="font-size:12px;color:var(--tl);margin-bottom:4px;">Need help? Contact us</div>
+      <a href="tel:+919247551711" style="font-size:18px;font-weight:700;color:var(--pd);text-decoration:none;font-family:Georgia,serif;">+91 92475 51711</a>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="showScreen('login')">Back to Sign In</button>
+  </div>
+</div>
+
+<div id="screen-forgot" class="screen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div id="auth-logo-dynamic" style="margin-bottom:4px;">
+        <!-- replaced by JS when logo uploaded -->
+        <div class="brand-icon" id="auth-icon-default">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#c9a96e" stroke-width="1.5">
+            <path d="M12 2L8 7H2l4 4-2 7 8-4 8 4-2-7 4-4h-6L12 2z"/>
+          </svg>
+        </div>
+        <img id="auth-logo-img" src="" alt="Sri Varuni" style="display:none;max-height:56px;max-width:200px;object-fit:contain;">
+      </div>
+      <h1 style="font-family: 'Nunito Sans', -apple-system, Arial, sans-serif;font-size:26px;font-weight:600;letter-spacing:0.3px;">Sri Varuni</h1>
+      <p>Partner Portal</p>
+    </div>
+    <h2 class="auth-title">Reset Password</h2>
+    <p class="auth-sub">Enter your email and we'll send a reset link</p>
+
+    <div id="forgot-success" class="alert alert-success" style="display:none;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+      Reset link sent! Check your inbox.
+    </div>
+
+    <div class="form-group">
+      <label>Email Address</label>
+      <input type="email" id="forgot-email" placeholder="you@example.com">
+    </div>
+    <button class="btn btn-primary" onclick="handleForgot()">Send Reset Link</button>
+    <div class="auth-link">
+      <a onclick="showScreen('login')">← Back to Sign In</a>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SCREEN: MAIN APP
+══════════════════════════════════════════════ -->
+<div id="screen-app" class="screen">
+
+  <!-- SIDEBAR -->
+  <!-- Mobile sidebar overlay -->
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<aside class="sidebar" id="main-sidebar">
+    <div class="sidebar-logo" style="cursor:default;">
+      <div id="sb-logo-img" style="display:none;margin-bottom:10px;">
+        <img id="sb-logo-src" src="" alt="Sri Varuni" style="max-height:40px;max-width:180px;object-fit:contain;filter:brightness(0) invert(1);">
+      </div>
+      <div id="sb-logo-text">
+        <h2 style="font-family: 'Nunito Sans', -apple-system, Arial, sans-serif;font-weight:600;letter-spacing:0.3px;">Sri Varuni</h2>
+        <p style="font-size:9px;letter-spacing:2.5px;text-transform:uppercase;color:var(--gold);margin-top:1px;">Partner Portal</p>
+      </div>
+    </div>
+
+    <div class="sidebar-user">
+      <div class="user-avatar" id="sidebar-avatar">R</div>
+      <div class="user-info">
+        <div class="user-name" id="sidebar-name">Reseller</div>
+        <div class="user-role" id="sidebar-role">Reseller Account</div>
+        <div style="font-size:9px;color:rgba(255,255,255,.25);letter-spacing:.5px;margin-top:2px;">v3.2</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <!-- Reseller nav -->
+      <div id="nav-reseller">
+        <div class="nav-section-label">Main</div>
+        <div class="nav-item" data-page="dashboard" onclick="showPage('dashboard')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          Dashboard
+        </div>
+        <div class="nav-item" data-page="place-order" onclick="showPage('place-order')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+          Place Order
+        </div>
+        <div class="nav-item" data-page="my-orders" onclick="showPage('my-orders')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          My Orders
+          <span class="nav-badge" id="nav-order-count">3</span>
+        </div>
+        <div class="nav-item" data-page="invoices" onclick="showPage('invoices')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Invoices
+        </div>
+        <div class="nav-section-label" style="margin-top:8px;">Account</div>
+        <div class="nav-item" data-page="my-profile" onclick="showPage('my-profile')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          My Profile
+        </div>
+        <div class="nav-item" data-page="contact" onclick="showPage('contact')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          Contact Us
+        </div>
+      </div>
+
+      <!-- Admin nav -->
+      <div id="nav-admin" style="display:none;">
+        <div class="nav-section-label">Admin</div>
+        <div class="nav-item" data-page="admin-dashboard" onclick="showPage('admin-dashboard')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          Overview
+        </div>
+        <div class="nav-item" data-page="admin-orders" onclick="showPage('admin-orders')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          All Orders
+          <span class="nav-badge" id="admin-order-badge">5</span>
+        </div>
+        <div class="nav-item" data-page="admin-resellers" onclick="showPage('admin-resellers')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Resellers
+        </div>
+        <div class="nav-item" data-page="admin-invoices" onclick="showPage('admin-invoices')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Invoices
+        </div>
+        <div class="nav-item" data-page="admin-catalog" onclick="showPage('admin-catalog')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+          Product Catalog
+        </div>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="nav-item" onclick="handleLogout()" style="color:rgba(255,100,100,0.7)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Sign Out
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main-content">
+    <div id="admin-bar" class="admin-bar" style="display:none;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Admin Mode — Sri Varuni Fashion Jewellery
+    </div>
+
+    <header class="topbar">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <button class="hamburger" id="hamburger-btn" onclick="openSidebar()" aria-label="Menu">
+          <span></span><span></span><span></span>
+        </button>
+        <h1 class="topbar-title" id="topbar-title">Dashboard</h1>
+      </div>
+      <div class="topbar-actions">
+        <div style="font-size:12px; color:var(--text-light); font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;" id="topbar-date"></div>
+        <span style="font-size:10px;color:#c9a96e;margin-left:8px;opacity:.6;">v3.2</span>
+      </div>
+    </header>
+
+    <div class="page-content">
+
+      <!-- ── RESELLER: DASHBOARD ── -->
+      <div class="page active" id="page-dashboard">
+        <div class="stats-grid" id="reseller-stats-grid">
+          <div class="stat-card purple">
+            <div class="stat-icon purple">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </div>
+            <div class="stat-value" id="stat-total">0</div>
+            <div class="stat-label">Total Orders</div>
+            <div class="stat-change" id="stat-month"></div>
+          </div>
+          <div class="stat-card gold">
+            <div class="stat-icon gold">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <div class="stat-value" id="stat-pending">0</div>
+            <div class="stat-label">Pending</div>
+          </div>
+          <div class="stat-card green">
+            <div class="stat-icon green">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+            </div>
+            <div class="stat-value" id="stat-shipped">0</div>
+            <div class="stat-label">Shipped</div>
+          </div>
+          <div class="stat-card blue">
+            <div class="stat-icon blue">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <div class="stat-value" id="stat-delivered">0</div>
+            <div class="stat-label">Delivered</div>
+          </div>
+          <div class="stat-card green">
+            <div class="stat-icon green">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </div>
+            <div class="stat-value" id="stat-credits">₹0</div>
+            <div class="stat-label">Credit Balance</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Recent Orders</h3>
+            <button class="btn btn-gold btn-sm" onclick="showPage('place-order')">+ New Order</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Product</th>
+                  <th>Customer</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="reseller-orders-tbody">
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── RESELLER: PLACE ORDER ── -->
+      <div class="page" id="page-place-order">
+        <div class="order-steps mb-24" id="order-steps">
+          <div class="step active" id="step-1"><div class="step-num">1</div><div class="step-label">Product</div></div>
+          <div class="step" id="step-2"><div class="step-num">2</div><div class="step-label">Customer</div></div>
+          <div class="step" id="step-3"><div class="step-num">3</div><div class="step-label">Payment</div></div>
+          <div class="step" id="step-4"><div class="step-num">4</div><div class="step-label">Confirm</div></div>
+        </div>
+
+        <!-- Step 1: Product (multi-item cart) -->
+        <div id="order-step-1">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Add Products to Order</h3>
+              <span style="font-size:12px; color:var(--text-light);">Add one or more items for the same customer</span>
+            </div>
+            <div class="card-body">
+              <!-- ADD ITEM ROW -->
+              <div style="background:linear-gradient(135deg,#faf8fc,#f5f0f9); border:1px solid var(--border); border-radius:var(--radius); padding:18px 20px; margin-bottom:20px;">
+                <p style="font-size:12px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:var(--text-light); margin-bottom:14px;">Add Item</p>
+                <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap;">
+                  <div style="flex:2; min-width:160px;">
+                    <label style="font-size:11px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:var(--text-mid); display:block; margin-bottom:6px;">SL Number</label>
+                    <input type="text" id="product-sl" placeholder="e.g. SV-2024-001" style="width:100%; padding:10px 14px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-family: 'Nunito Sans', -apple-system, Arial, sans-serif; font-size:14px; outline:none;" autocomplete="off" onkeydown="if(event.key==='Enter') lookupAndAdd()">
+                  </div>
+                  <div style="width:90px;">
+                    <label style="font-size:11px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:var(--text-mid); display:block; margin-bottom:6px;">Qty</label>
+                    <input type="number" id="add-qty" value="1" min="1" style="width:100%; padding:10px 14px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:14px; outline:none;">
+                  </div>
+                  <button class="btn btn-primary" style="padding:10px 18px; font-size:13px; white-space:nowrap; flex-shrink:0; margin-bottom:0;" onclick="lookupAndAdd()">+ Add Item</button>
+                </div>
+                <div style="margin-top:8px;">
+                  <span style="font-size:11px; color:var(--text-light);">Quick add: </span>
+                  <span onclick="quickFill('SV-2024-001')" style="font-size:11px; color:var(--purple-light); cursor:pointer; font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; text-decoration:underline;">SV-2024-001</span>
+                  <span style="font-size:11px; color:var(--text-light);"> · </span>
+                  <span onclick="quickFill('SV-2024-002')" style="font-size:11px; color:var(--purple-light); cursor:pointer; font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; text-decoration:underline;">SV-2024-002</span>
+                  <span style="font-size:11px; color:var(--text-light);"> · </span>
+                  <span onclick="quickFill('SV-2024-003')" style="font-size:11px; color:var(--purple-light); cursor:pointer; font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; text-decoration:underline;">SV-2024-003</span>
+                  <span style="font-size:11px; color:var(--text-light);"> · </span>
+                  <span onclick="quickFill('SV-2024-004')" style="font-size:11px; color:var(--purple-light); cursor:pointer; font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; text-decoration:underline;">SV-2024-004</span>
+                  <span style="font-size:11px; color:var(--text-light);"> · </span>
+                  <span onclick="quickFill('SV-2024-005')" style="font-size:11px; color:var(--purple-light); cursor:pointer; font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; text-decoration:underline;">SV-2024-005</span>
+                </div>
+              </div>
+
+              <!-- CART TABLE -->
+              <div id="cart-empty" style="text-align:center; padding:28px; border:2px dashed var(--border); border-radius:var(--radius); margin-bottom:16px;">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--border)" stroke-width="1.5" style="display:block; margin:0 auto 10px;"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+                <p style="font-size:13px; color:var(--text-light);">No items added yet. Add at least one product above.</p>
+              </div>
+
+              <div id="cart-table-wrap" style="display:none; margin-bottom:16px;">
+                <table style="width:100%; border-collapse:collapse;">
+                  <thead>
+                    <tr>
+                      <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:var(--text-light); background:#faf8fc; border-bottom:1px solid var(--border); width:52px;"></th>
+                      <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:var(--text-light); background:#faf8fc; border-bottom:1px solid var(--border);">SL No</th>
+                      <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:var(--text-light); background:#faf8fc; border-bottom:1px solid var(--border);">Product</th>
+                      <th style="padding:10px 14px; text-align:center; font-size:11px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:var(--text-light); background:#faf8fc; border-bottom:1px solid var(--border);">Qty</th>
+                      <th style="padding:10px 14px; text-align:right; font-size:11px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:var(--text-light); background:#faf8fc; border-bottom:1px solid var(--border);">Unit</th>
+                      <th style="padding:10px 14px; text-align:right; font-size:11px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:var(--text-light); background:#faf8fc; border-bottom:1px solid var(--border);">Amount</th>
+                      <th style="padding:10px 14px; text-align:center; font-size:11px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:var(--text-light); background:#faf8fc; border-bottom:1px solid var(--border);"></th>
+                    </tr>
+                  </thead>
+                  <tbody id="cart-tbody"></tbody>
+                  <tfoot>
+                    <tr>
+                      <td colspan="5" style="padding:12px 14px; text-align:right; font-size:13px; font-weight:600; color:var(--text-mid); border-top:2px solid var(--border);">Order Total</td>
+                      <td style="padding:12px 14px; text-align:right; font-size:16px; font-weight:700; color:var(--purple-dark); border-top:2px solid var(--border);" id="cart-total">₹0</td>
+                      <td style="border-top:2px solid var(--border);"></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+
+              <div class="form-group">
+                <label>Special Instructions (Optional)</label>
+                <textarea id="order-notes" placeholder="Any special packaging or handling notes..." style="min-height:68px;"></textarea>
+              </div>
+              <button class="btn btn-primary mt-8" onclick="goToStep(2)" style="width:auto; padding:12px 32px;">Continue →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Customer -->
+        <div id="order-step-2" style="display:none;">
+          <div class="card">
+            <div class="card-header"><h3 class="card-title">Customer Delivery Details</h3></div>
+            <div class="card-body">
+              <!-- Ship-to-self toggle -->
+              <div style="display:flex;align-items:center;gap:14px;background:linear-gradient(135deg,#faf8fc,#f5f0f9);border:1.5px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin-bottom:20px;cursor:pointer;" onclick="toggleShipToSelf()" id="ship-self-bar">
+                <div style="width:40px;height:22px;border-radius:11px;background:var(--border);position:relative;flex-shrink:0;transition:background .2s;" id="ship-self-toggle">
+                  <div style="width:18px;height:18px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:transform .2s;box-shadow:0 1px 4px rgba(0,0,0,.2);" id="ship-self-knob"></div>
+                </div>
+                <div>
+                  <div style="font-size:13px;font-weight:600;color:var(--td);">Ship to my address</div>
+                  <div style="font-size:11px;color:var(--tl);margin-top:1px;">Auto-fill with your registered address from Profile</div>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Customer Full Name</label>
+                  <input type="text" id="cust-name" placeholder="Full name">
+                </div>
+                <div class="form-group">
+                  <label>Phone Number</label>
+                  <input type="tel" id="cust-phone" placeholder="+91 XXXXX XXXXX">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Delivery Address</label>
+                <textarea id="cust-address" placeholder="Flat/House no, Street, Area"></textarea>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>City</label>
+                  <input type="text" id="cust-city" placeholder="City">
+                </div>
+                <div class="form-group">
+                  <label>State</label>
+                  <input type="text" id="cust-state" placeholder="State">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Pincode</label>
+                <input type="text" id="cust-pin" placeholder="6-digit pincode" style="max-width:200px;">
+              </div>
+              <div style="display:flex; gap:12px;">
+                <button class="btn btn-outline" onclick="goToStep(1)">← Back</button>
+                <button class="btn btn-primary" style="width:auto; padding:12px 32px;" onclick="goToStep(3)">Continue →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3: Payment -->
+        <div id="order-step-3" style="display:none;">
+          <div class="card">
+            <div class="card-header"><h3 class="card-title">Payment Proof</h3></div>
+            <div class="card-body">
+              <div style="background:linear-gradient(135deg,#faf8fc,#f5f0f9); border:1px solid var(--border); border-radius:var(--radius); padding:18px 20px; margin-bottom:20px;">
+                <div style="font-size:12px; color:var(--text-light); margin-bottom:4px;">Transfer Amount</div>
+                <div style="font-size:28px; font-weight:700; color:var(--purple-dark);" id="payment-amount">₹0</div>
+                <div style="font-size:12px; color:var(--text-light); margin-top:4px;">Pay via UPI to: <strong style="color:var(--purple-dark);">srivaruni@upi</strong></div>
+              </div>
+              <!-- Credit balance apply -->
+              <div id="credit-apply-section" style="display:none;margin-bottom:16px;">
+                <div style="background:linear-gradient(135deg,#e8f5ee,#d1fae5);border:1.5px solid #6ee7b7;border-radius:12px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+                  <div>
+                    <div style="font-size:13px;font-weight:600;color:#065f46;">Available Credits: <span id="credit-avail-amount" style="font-family:monospace;">₹0</span></div>
+                    <div style="font-size:11px;color:#047857;margin-top:2px;">Credits will be deducted from your balance and applied to this order</div>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+                    <span style="font-size:12px;color:#065f46;font-weight:600;" id="credit-apply-label">Apply</span>
+                    <div onclick="toggleApplyCredit()" style="width:44px;height:24px;border-radius:12px;background:#d1fae5;border:2px solid #6ee7b7;position:relative;cursor:pointer;transition:background .2s;" id="credit-apply-toggle">
+                      <div style="width:18px;height:18px;background:#fff;border-radius:50%;position:absolute;top:1px;left:1px;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);" id="credit-apply-knob"></div>
+                    </div>
+                  </div>
+                </div>
+                <div id="credit-apply-amount-row" style="display:none;margin-top:8px;background:#fff;border:1px solid #e8d5f0;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:8px;">
+                  <span style="font-size:13px;color:#4a3560;">Credit amount to apply:</span>
+                  <input type="number" id="credit-apply-input" style="width:100px;font-family:monospace;padding:4px 8px;border:1px solid #e8d5f0;border-radius:6px;font-size:13px;" placeholder="0">
+                  <span style="font-size:12px;color:#8b7aa0;">(max ₹<span id="credit-apply-max">0</span>)</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>UPI Transaction ID</label>
+                <input type="text" id="upi-txn" placeholder="e.g. 123456789012" style="font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;">
+              </div>
+              <div class="form-group">
+                <label>Upload Payment Screenshots <span style="font-weight:400;color:var(--text-light);font-size:11px;text-transform:none;letter-spacing:0;">— add multiple if needed</span></label>
+                <div class="upload-area" onclick="document.getElementById('upi-screenshot-input').click()">
+                  <input type="file" id="upi-screenshot-input" accept="image/*" multiple style="display:none;" onchange="handleUpload(this)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  <p><strong>Click to upload</strong> — select multiple files<br>PNG, JPG up to 10MB each</p>
+                </div>
+                <!-- Screenshot previews grid -->
+                <div id="screenshots-grid" style="display:none;margin-top:12px;flex-wrap:wrap;gap:10px;"></div>
+              </div>
+              <div style="display:flex; gap:12px;">
+                <button class="btn btn-outline" onclick="goToStep(2)">← Back</button>
+                <button class="btn btn-primary" style="width:auto; padding:12px 32px;" onclick="goToStep(4)">Continue →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 4: Confirm -->
+        <div id="order-step-4" style="display:none;">
+          <div class="card">
+            <div class="card-header"><h3 class="card-title">Order Summary</h3></div>
+            <div class="card-body">
+              <!-- Items summary -->
+              <div style="margin-bottom:20px;">
+                <p class="text-sm text-muted fw-600 mb-16" style="letter-spacing:1px; text-transform:uppercase;">Items Ordered</p>
+                <div id="conf-items-list" style="border:1px solid var(--border); border-radius:var(--radius-sm); overflow:hidden;"></div>
+                <div style="display:flex; justify-content:flex-end; padding:10px 16px; background:#faf8fc; border:1px solid var(--border); border-top:none; border-radius:0 0 var(--radius-sm) var(--radius-sm);">
+                  <span style="font-size:13px; color:var(--text-mid); margin-right:24px; font-weight:600;">Order Total</span>
+                  <span id="conf-amount" style="font-size:16px; font-weight:700; color:var(--purple-dark);">—</span>
+                </div>
+              </div>
+              <div style="margin-bottom:20px;">
+                <p class="text-sm text-muted fw-600 mb-16" style="letter-spacing:1px; text-transform:uppercase;">Ship To</p>
+                <div style="border:1px solid var(--border); border-radius:var(--radius-sm); padding:0 4px;">
+                  <div class="info-row"><label>Name</label><span id="conf-cname">—</span></div>
+                  <div class="info-row"><label>Phone</label><span id="conf-cphone">—</span></div>
+                  <div class="info-row"><label>Address</label><span id="conf-caddr">—</span></div>
+                  <div class="info-row"><label>Pincode</label><span id="conf-cpin">—</span></div>
+                </div>
+              </div>
+              <div style="background:var(--success-bg); border:1px solid #86efac; border-radius:var(--radius-sm); padding:14px 16px; display:flex; align-items:center; gap:10px; margin-bottom:20px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                <span style="font-size:13px; color:var(--success); font-weight:500;">Payment screenshot uploaded. Awaiting verification.</span>
+              </div>
+              <div style="display:flex; gap:12px;">
+                <button class="btn btn-outline" onclick="goToStep(3)">← Back</button>
+                <button class="btn btn-primary" style="background:linear-gradient(135deg,#2d7a4f,#1a5c38); width:auto; padding:12px 32px;" onclick="placeOrder()">✓ Place Order</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── RESELLER: MY ORDERS ── -->
+      <div class="page" id="page-my-orders">
+        <div class="tabs">
+          <div class="tab active" onclick="filterOrders('all', this)">All Orders</div>
+          <div class="tab" onclick="filterOrders('pending', this)">Pending</div>
+          <div class="tab" onclick="filterOrders('shipped', this)">Shipped</div>
+          <div class="tab" onclick="filterOrders('delivered', this)">Delivered</div>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Product</th>
+                  <th>Customer</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Tracking</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="my-orders-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── RESELLER: INVOICES ── -->
+      <div class="page" id="page-invoices">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">My Invoices</h3>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Invoice No</th>
+                  <th>Order ID</th>
+                  <th>Product</th>
+                  <th>Amount</th>
+                  <th>GST</th>
+                  <th>Total</th>
+                  <th>Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="invoices-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ── RESELLER: MY PROFILE ── -->
+      <div class="page" id="page-my-profile">
+
+        <!-- Profile header banner -->
+        <div style="background:linear-gradient(135deg,var(--purple-dark),var(--purple-mid));border-radius:var(--radius);padding:24px 28px;margin-bottom:24px;display:flex;align-items:center;gap:20px;">
+          <div id="prof-avatar-big" style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold-light));display:flex;align-items:center;justify-content:center;font-family: 'Nunito Sans', -apple-system, Arial, sans-serif;font-size:22px;font-weight:700;color:var(--purple-dark);flex-shrink:0;">P</div>
+          <div>
+            <div id="prof-banner-name" style="font-family: 'Nunito Sans', -apple-system, Arial, sans-serif;font-size:18px;color:#fff;margin-bottom:2px;">Reseller Account</div>
+            <div id="prof-banner-biz" style="font-size:12px;color:rgba(255,255,255,.55);letter-spacing:.3px;">Update your details below</div>
+          </div>
+          <button class="btn btn-gold btn-sm" onclick="saveProfile()" style="margin-left:auto;padding:10px 22px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Save All Changes
+          </button>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;">
+
+          <!-- LEFT COLUMN -->
+          <div style="display:flex;flex-direction:column;gap:20px;">
+
+            <!-- Personal Details -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Personal Details</h3>
+              </div>
+              <div class="card-body">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" id="prof-name" placeholder="Your full name" oninput="updateProfileBanner()">
+                  </div>
+                  <div class="form-group">
+                    <label>Phone / WhatsApp</label>
+                    <input type="tel" id="prof-phone" placeholder="+91 98765 43210">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Email Address <span style="font-size:10px;color:var(--text-light);font-weight:400;text-transform:none;letter-spacing:0;">(cannot be changed)</span></label>
+                  <input type="email" id="prof-email" readonly style="background:#f9f7fc;color:var(--text-light);cursor:not-allowed;">
+                </div>
+                <div class="form-group">
+                  <label>Business / Shop Name</label>
+                  <input type="text" id="prof-business" placeholder="Your shop or business name" oninput="updateProfileBanner()">
+                </div>
+              </div>
+            </div>
+
+            <!-- GST & Tax -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">GST & Tax Details</h3>
+                <span style="font-size:11px;color:var(--text-light);">Optional</span>
+              </div>
+              <div class="card-body">
+                <div class="form-group">
+                  <label>GST Number</label>
+                  <input type="text" id="prof-gst" placeholder="27AABCS1429B1Z1" style="font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;text-transform:uppercase;letter-spacing:1px;">
+                </div>
+                <div class="form-group">
+                  <label>PAN Number</label>
+                  <input type="text" id="prof-pan" placeholder="ABCDE1234F" style="font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;text-transform:uppercase;letter-spacing:1px;">
+                </div>
+                <div style="background:var(--warning-bg);border:1px solid #fde68a;border-radius:var(--radius-sm);padding:11px 14px;display:flex;align-items:flex-start;gap:9px;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2" style="flex-shrink:0;margin-top:1px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  <span style="font-size:12px;color:var(--warning);line-height:1.5;">GST details appear on your B2B invoices from Sri Varuni. Leave blank if not registered.</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- RIGHT COLUMN -->
+          <div style="display:flex;flex-direction:column;gap:20px;">
+
+            <!-- Delivery Address -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">My Delivery Address</h3>
+                <span style="font-size:11px;color:var(--gold);font-weight:500;">★ Used for Ship to My Address</span>
+              </div>
+              <div class="card-body">
+                <div class="form-group">
+                  <label>Full Address</label>
+                  <textarea id="prof-address" placeholder="House / Shop no, Street, Area, Landmark" style="min-height:88px;"></textarea>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>City</label>
+                    <input type="text" id="prof-city" placeholder="Mumbai">
+                  </div>
+                  <div class="form-group">
+                    <label>State</label>
+                    <input type="text" id="prof-state" placeholder="Maharashtra">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Pincode</label>
+                  <input type="text" id="prof-pin" placeholder="400001" maxlength="6" style="max-width:180px;font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;letter-spacing:2px;">
+                </div>
+              </div>
+            </div>
+
+            <!-- Change Password -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Change Password</h3>
+              </div>
+              <div class="card-body">
+                <div class="form-group">
+                  <label>Current Password</label>
+                  <input type="password" id="prof-curpass" placeholder="Enter your current password">
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>New Password</label>
+                    <input type="password" id="prof-newpass" placeholder="Min. 8 characters">
+                  </div>
+                  <div class="form-group">
+                    <label>Confirm New</label>
+                    <input type="password" id="prof-confpass" placeholder="Repeat password">
+                  </div>
+                </div>
+                <button class="btn btn-outline" onclick="changePassword()" style="margin-top:4px;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  Update Password
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ── ADMIN: PRODUCT CATALOG ── -->
+      <div class="page" id="page-admin-catalog">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Product Catalog</h3>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <button class="btn btn-outline btn-sm" onclick="openLogoUpload()" style="display:flex;align-items:center;gap:6px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                Brand Logo
+              </button>
+              <button class="btn btn-gold btn-sm" onclick="openAddProduct()">+ Add Product</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Image</th>
+                  <th>SL Number</th>
+                  <th>Product Name</th>
+                  <th>Details</th>
+                  <th>Reseller Price</th>
+                  <th>Stock</th>
+                  <th>GST %</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="catalog-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── RESELLER: CONTACT US ── -->
+      <div class="page" id="page-contact">
+        <div style="max-width:560px;">
+          <div class="card" style="margin-bottom:20px;">
+            <div class="card-header"><h3 class="card-title">Contact Sri Varuni</h3></div>
+            <div class="card-body">
+              <div style="display:flex;align-items:center;gap:20px;padding:20px;background:linear-gradient(135deg,var(--purple-dark),var(--purple-mid));border-radius:var(--radius);margin-bottom:20px;">
+                <div style="width:52px;height:52px;background:rgba(201,169,110,.2);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                </div>
+                <div>
+                  <div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:4px;letter-spacing:.5px;">Call / WhatsApp</div>
+                  <a href="tel:+919247551711" style="font-size:24px;font-weight:700;color:#fff;text-decoration:none;font-family:Georgia,serif;letter-spacing:.5px;">+91 92475 51711</a>
+                  <div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:4px;">Mon–Sat, 10am–7pm IST</div>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:12px;">
+                <a href="tel:+919247551711" class="btn btn-primary" style="width:100%;justify-content:center;gap:10px;font-size:15px;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                  Call Now
+                </a>
+                <a href="https://wa.me/919247551711" target="_blank" class="btn" style="width:100%;justify-content:center;background:#25D366;color:#fff;font-size:15px;gap:10px;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
+                  WhatsApp Us
+                </a>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3 class="card-title">Quick Help</h3></div>
+            <div class="card-body">
+              <div style="display:flex;flex-direction:column;gap:0;">
+                <div style="padding:14px 0;border-bottom:1px solid var(--border);">
+                  <div style="font-size:13px;font-weight:600;color:var(--td);margin-bottom:3px;">Order not confirmed?</div>
+                  <div style="font-size:12px;color:var(--tl);">Payment verification usually takes 1-2 hours during business hours. Call us if it has been more than 4 hours.</div>
+                </div>
+                <div style="padding:14px 0;border-bottom:1px solid var(--border);">
+                  <div style="font-size:13px;font-weight:600;color:var(--td);margin-bottom:3px;">Want to cancel an order?</div>
+                  <div style="font-size:12px;color:var(--tl);">You can cancel pending orders directly from My Orders before payment is verified.</div>
+                </div>
+                <div style="padding:14px 0;border-bottom:1px solid var(--border);">
+                  <div style="font-size:13px;font-weight:600;color:var(--td);margin-bottom:3px;">Tracking not updated?</div>
+                  <div style="font-size:12px;color:var(--tl);">Tracking is updated when your order is dispatched. WhatsApp us your order ID for status.</div>
+                </div>
+                <div style="padding:14px 0;">
+                  <div style="font-size:13px;font-weight:600;color:var(--td);margin-bottom:3px;">New reseller enquiry?</div>
+                  <div style="font-size:12px;color:var(--tl);">Call or WhatsApp us to learn about reseller margins and catalogue access.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ADMIN: DASHBOARD ── -->
+      <div class="page" id="page-admin-dashboard">
+        <div class="stats-grid">
+          <div class="stat-card purple">
+            <div class="stat-icon purple">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+            </div>
+            <div class="stat-value" id="admin-stat-total">0</div>
+            <div class="stat-label">Total Orders</div>
+          </div>
+          <div class="stat-card gold">
+            <div class="stat-icon gold">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <div class="stat-value" id="admin-stat-pending">0</div>
+            <div class="stat-label">Awaiting Verification</div>
+          </div>
+          <div class="stat-card green">
+            <div class="stat-icon green">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </div>
+            <div class="stat-value" id="admin-stat-revenue">₹0</div>
+            <div class="stat-label">Revenue This Month</div>
+          </div>
+          <div class="stat-card blue">
+            <div class="stat-icon blue">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            </div>
+            <div class="stat-value" id="admin-stat-resellers">0</div>
+            <div class="stat-label">Active Resellers</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Pending Actions</h3>
+            <span class="badge badge-pending">2 need attention</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Reseller</th>
+                  <th>Product</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="admin-pending-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ADMIN: ALL ORDERS ── -->
+      <div class="page" id="page-admin-orders">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">All Orders</h3>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <input type="text" placeholder="Search orders..." style="padding:8px 14px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:13px; outline:none; width:220px;" oninput="searchOrders(this.value)">
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Reseller</th>
+                  <th>Product</th>
+                  <th>Customer</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="admin-orders-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ADMIN: RESELLERS ── -->
+      <div class="page" id="page-admin-resellers">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Reseller Accounts</h3>
+            <button class="btn btn-gold btn-sm" onclick="openAddReseller()">+ Add Reseller</button>
+          </div>
+          <div style="padding:0 0 0 24px;border-bottom:1px solid var(--border);display:flex;gap:4px;">
+            <div class="tab active" onclick="filterResellers('active',this)" style="font-size:12px;padding:10px 16px;">Active</div>
+            <div class="tab" onclick="filterResellers('pending',this)" style="font-size:12px;padding:10px 16px;">Pending Approval <span id="pending-resellers-badge" style="background:var(--gold);color:var(--pd);font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:4px;">0</span></div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Business</th>
+                  <th>Phone</th>
+                  <th>City</th>
+                  <th>Orders</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="resellers-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ADMIN: INVOICES ── -->
+      <div class="page" id="page-admin-invoices">
+        <div class="card">
+          <div class="card-header"><h3 class="card-title">All Invoices</h3></div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Invoice No</th>
+                  <th>Reseller</th>
+                  <th>Order ID</th>
+                  <th>Amount</th>
+                  <th>GST</th>
+                  <th>Total</th>
+                  <th>Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="admin-invoices-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /page-content -->
+  </main>
+</div><!-- /screen-app -->
+
+<!-- ══════════════════════════════════════════════
+     MODALS
+══════════════════════════════════════════════ -->
+
+<!-- Order Detail Modal -->
+<div class="modal-overlay" id="modal-order">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Order Details</h3>
+      <button class="modal-close" onclick="closeModal('modal-order')">×</button>
+    </div>
+    <div class="modal-body" id="modal-order-body"></div>
+    <div class="modal-footer" id="modal-order-footer"></div>
+  </div>
+</div>
+
+<!-- Invoice Modal -->
+<div class="modal-overlay" id="modal-invoice">
+  <div class="modal" style="max-width:720px;">
+    <div class="modal-header">
+      <h3>Invoice</h3>
+      <button class="modal-close" onclick="closeModal('modal-invoice')">×</button>
+    </div>
+    <div class="modal-body" id="modal-invoice-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-invoice')">Close</button>
+      <button class="btn btn-primary" onclick="printInvoice()">🖨 Print Invoice</button>
+      <button class="btn btn-gold" onclick="downloadInvoicePDF()">⬇ Download PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- Shipping Label Modal -->
+<div class="modal-overlay" id="modal-label">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header">
+      <h3>Shipping Label</h3>
+      <button class="modal-close" onclick="closeModal('modal-label')">×</button>
+    </div>
+    <div class="modal-body" id="modal-label-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-label')">Close</button>
+      <button class="btn btn-primary" onclick="printLabel()">🖨 Print Label</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Tracking Modal -->
+<div class="modal-overlay" id="modal-tracking">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header">
+      <h3>Add Tracking Details</h3>
+      <button class="modal-close" onclick="closeModal('modal-tracking')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Courier Partner</label>
+        <select id="tracking-courier">
+          <option>DTDC</option>
+          <option>Delhivery</option>
+          <option>BlueDart</option>
+          <option>Shiprocket</option>
+          <option>Ekart</option>
+          <option>India Post</option>
+          <option>FedEx</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Tracking Number</label>
+        <input type="text" id="tracking-number" placeholder="Enter tracking number" style="font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;">
+      </div>
+      <div class="form-group">
+        <label>Estimated Delivery</label>
+        <input type="date" id="tracking-eta">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-tracking')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveTracking()">Save & Notify Reseller</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Order Modal (Admin) -->
+<div class="modal-overlay" id="modal-edit-order">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-header">
+      <h3>Edit Order</h3>
+      <button class="modal-close" onclick="closeModal('modal-edit-order')">&#215;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-order-id">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Customer Name</label>
+          <input type="text" id="edit-cust-name" placeholder="Customer name">
+        </div>
+        <div class="form-group">
+          <label>Customer Phone</label>
+          <input type="tel" id="edit-cust-phone" placeholder="+91 XXXXX XXXXX">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Delivery Address</label>
+        <textarea id="edit-cust-address" placeholder="Full address"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>City</label>
+          <input type="text" id="edit-cust-city">
+        </div>
+        <div class="form-group">
+          <label>State</label>
+          <input type="text" id="edit-cust-state">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Pincode</label>
+          <input type="text" id="edit-cust-pin" style="font-family:monospace;">
+        </div>
+        <div class="form-group">
+          <label>Order Status</label>
+          <select id="edit-order-status">
+            <option value="pending">Pending</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="shipped">Shipped</option>
+            <option value="delivered">Delivered</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>UPI Transaction ID</label>
+          <input type="text" id="edit-upi-txn" style="font-family:monospace;">
+        </div>
+        <div class="form-group">
+          <label>Total Price (₹)</label>
+          <input type="number" id="edit-price" min="0">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea id="edit-notes" placeholder="Internal notes"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-edit-order')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEditOrder()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Reseller Modal -->
+<div class="modal-overlay" id="modal-add-reseller">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header">
+      <h3>Add New Reseller</h3>
+      <button class="modal-close" onclick="closeModal('modal-add-reseller')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label>Full Name</label><input type="text" id="ar-name" placeholder="Name"></div>
+        <div class="form-group"><label>Phone</label><input type="tel" id="ar-phone" placeholder="+91..."></div>
+      </div>
+      <div class="form-group"><label>Email</label><input type="email" id="ar-email" placeholder="email@example.com"></div>
+      <div class="form-group"><label>Business Name</label><input type="text" id="ar-business" placeholder="Shop name"></div>
+      <div class="form-group"><label>City</label><input type="text" id="ar-city" placeholder="City"></div>
+      <div class="form-group"><label>Temporary Password</label><input type="text" id="ar-pass" placeholder="They can change later" value="Varuni@123"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-add-reseller')">Cancel</button>
+      <button class="btn btn-primary" onclick="addReseller()">Create Account & Send Login</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Add/Edit Product Modal -->
+<div class="modal-overlay" id="modal-product">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-header">
+      <h3 id="product-modal-title">Add Product</h3>
+      <button class="modal-close" onclick="closeModal('modal-product')">×</button>
+    </div>
+    <div class="modal-body">
+      <!-- SL + GST row -->
+      <div class="form-row">
+        <div class="form-group">
+          <label>SL Number</label>
+          <input type="text" id="prod-sl" placeholder="e.g. SV-2024-006" style="font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; text-transform:uppercase; letter-spacing:1px;">
+        </div>
+        <div class="form-group">
+          <label>GST %</label>
+          <input type="number" id="prod-gst" value="3" min="0" max="28" placeholder="3">
+        </div>
+      </div>
+      <!-- Name -->
+      <div class="form-group">
+        <label>Product Name</label>
+        <input type="text" id="prod-name" placeholder="e.g. Kundan Necklace Set">
+      </div>
+      <!-- Details -->
+      <div class="form-group">
+        <label>Product Details <span style="font-weight:400;color:var(--text-light);font-size:11px;letter-spacing:0;text-transform:none;">shown to resellers</span></label>
+        <input type="text" id="prod-details" placeholder="e.g. Temple jewellery · 22g · Gold plated">
+      </div>
+      <!-- Product Image Upload -->
+      <div class="form-group">
+        <label>Product Image <span style="font-weight:400;color:var(--text-light);font-size:11px;letter-spacing:0;text-transform:none;">optional · shown to resellers</span></label>
+        <div id="prod-img-area" style="border:2px dashed var(--border);border-radius:var(--radius);overflow:hidden;transition:border-color .2s;cursor:pointer;position:relative;" onclick="document.getElementById('prod-img-input').click()">
+          <!-- Empty state -->
+          <div id="prod-img-empty" style="padding:20px;text-align:center;">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--border)" stroke-width="1.5" style="display:block;margin:0 auto 8px;"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            <p style="font-size:13px;color:var(--text-light);">Click to <strong style="color:var(--purple-light);">upload image</strong></p>
+            <p style="font-size:11px;color:var(--text-light);margin-top:3px;">JPG, PNG up to 5MB</p>
+          </div>
+          <!-- Preview state -->
+          <div id="prod-img-preview" style="display:none;position:relative;">
+            <img id="prod-img-thumb" src="" alt="Product" style="width:100%;height:160px;object-fit:cover;display:block;">
+            <button onclick="event.stopPropagation();removeProductImage()" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;font-family: 'Nunito Sans', -apple-system, Arial, sans-serif;">✕ Remove</button>
+          </div>
+          <input type="file" id="prod-img-input" accept="image/*" style="display:none;" onchange="handleProductImage(this)">
+        </div>
+      </div>
+
+      <!-- Price + Stock -->
+      <div class="form-row">
+        <div class="form-group">
+          <label>Reseller Price</label>
+          <div style="position:relative;">
+            <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-light);font-weight:600;font-size:15px;">₹</span>
+            <input type="number" id="prod-price" placeholder="850" min="0" style="padding-left:30px;">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Stock Quantity</label>
+          <input type="number" id="prod-stock" placeholder="50" min="0">
+        </div>
+      </div>
+      <!-- Visibility -->
+      <div class="form-group">
+        <label>Visibility</label>
+        <select id="prod-status">
+          <option value="active">✓ Active — visible to all resellers</option>
+          <option value="hidden">◌ Hidden — not visible to resellers</option>
+          <option value="out">✕ Out of Stock — show as unavailable</option>
+        </select>
+      </div>
+      <!-- Info strip -->
+      <div style="background:linear-gradient(135deg,#faf8fc,#f5f0f9);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 16px;display:flex;align-items:center;gap:10px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span style="font-size:12px;color:var(--text-mid);">Stock auto-deducts when resellers place orders. Product hides automatically at 0.</span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-product')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveProduct()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        Save Product
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Logo Upload Modal -->
+<div class="modal-overlay" id="modal-logo">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-header">
+      <h3>Upload Brand Logo</h3>
+      <button class="modal-close" onclick="closeModal('modal-logo')">&#215;</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text-light);margin-bottom:18px;line-height:1.6;">
+        Logo appears on the login screen and sidebar. Use a transparent PNG or white-on-transparent version for the sidebar. Recommended: 400×160px or wider.
+      </p>
+      <div id="logo-upload-area" style="border:2px dashed var(--border);border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:border-color .2s;" onclick="document.getElementById('logo-file-input').click()">
+        <div id="logo-empty-state" style="padding:28px;text-align:center;">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--border)" stroke-width="1.5" style="display:block;margin:0 auto 10px;"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          <p style="font-size:13px;color:var(--text-light);">Click to <strong style="color:var(--purple-light);">upload logo</strong></p>
+          <p style="font-size:11px;color:var(--text-light);margin-top:3px;">PNG, JPG, SVG up to 2MB</p>
+        </div>
+        <div id="logo-preview-state" style="display:none;">
+          <div style="background:#f5f0f9;padding:20px;text-align:center;">
+            <img id="logo-preview-img" src="" alt="Logo preview" style="max-height:64px;max-width:260px;object-fit:contain;">
+          </div>
+          <div style="background:var(--purple-dark);padding:14px;text-align:center;">
+            <img id="logo-preview-dark" src="" alt="Logo on dark" style="max-height:40px;max-width:200px;object-fit:contain;filter:brightness(0) invert(1);">
+          </div>
+          <div style="padding:10px 14px;display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:12px;color:var(--text-light);">Light / Dark preview</span>
+            <button onclick="event.stopPropagation();clearLogoUpload()" style="font-size:12px;color:var(--danger);background:none;border:none;cursor:pointer;">Remove</button>
+          </div>
+        </div>
+        <input type="file" id="logo-file-input" accept="image/*,.svg" style="display:none;" onchange="handleLogoUpload(this)">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-logo')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveLogo()">Apply Logo</button>
+    </div>
+  </div>
+</div>
+
+<!-- Screenshot Viewer Overlay -->
+<div id="screenshot-viewer-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:16px;" onclick="closeScreenshotViewer()">
+  <div style="position:absolute;top:20px;right:20px;display:flex;gap:12px;align-items:center;">
+    <span id="screenshot-viewer-counter" style="color:rgba(255,255,255,.6);font-size:13px;"></span>
+    <a id="screenshot-download-btn" href="#" download target="_blank"
+      style="background:rgba(255,255,255,.15);color:#fff;padding:8px 16px;border-radius:8px;font-size:13px;text-decoration:none;display:flex;align-items:center;gap:6px;"
+      onclick="event.stopPropagation()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Download
+    </a>
+    <button onclick="closeScreenshotViewer()" style="background:rgba(255,255,255,.15);color:#fff;border:none;width:36px;height:36px;border-radius:8px;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;">&#215;</button>
+  </div>
+  <img id="screenshot-viewer-img" src="" alt="Payment screenshot"
+    style="max-width:90vw;max-height:80vh;object-fit:contain;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.5);"
+    onclick="event.stopPropagation()">
+  <div style="font-size:12px;color:rgba(255,255,255,.4);">Click anywhere outside to close</div>
+</div>
+
+<!-- Issue Credit Modal -->
+<div class="modal-overlay" id="modal-credit">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <h3>Issue Credit</h3>
+      <button class="modal-close" onclick="closeModal('modal-credit')">&#215;</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:linear-gradient(135deg,#faf8fc,#f5f0f9);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:18px;">
+        <div style="font-size:12px;color:var(--tl);">Issuing credit to</div>
+        <div id="credit-reseller-name" style="font-size:16px;font-weight:700;color:var(--pd);margin-top:2px;"></div>
+      </div>
+      <div class="form-group">
+        <label>Amount (₹) <span style="font-weight:400;color:var(--tl);font-size:11px;text-transform:none;letter-spacing:0;">use negative to deduct</span></label>
+        <input type="number" id="credit-amount" placeholder="e.g. 500 or -200" style="font-size:18px;font-weight:600;">
+      </div>
+      <div class="form-group">
+        <label>Note / Reason</label>
+        <input type="text" id="credit-note" placeholder="e.g. Festival bonus, Order correction">
+      </div>
+      <div style="background:var(--warning-bg);border:1px solid #fde68a;border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:var(--warning);">
+        Credits appear in the reseller's portal under their account balance.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-credit')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveCredit()">Issue Credit</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reseller Detail Modal -->
+<div class="modal-overlay" id="modal-reseller-detail">
+  <div class="modal" style="max-width:780px;max-height:90vh;">
+    <div class="modal-header">
+      <h3>Reseller Profile</h3>
+      <button class="modal-close" onclick="closeModal('modal-reseller-detail')">&#215;</button>
+    </div>
+        <div class="modal-body" id="reseller-detail-body" style="max-height:75vh;overflow-y:auto;">
+      <div style="text-align:center;padding:32px;color:var(--tl);">Loading...</div>
+    </
+</div></div></div>
+
+
+<!-- Toast notification -->
+<div id="toast" class="toast success">
+  <span id="toast-msg"></span>
+</div>
+<script src="js/app.config.js"></script>
+<script src="js/app.utils.js"></script>
+<script src="js/app.auth.js"></script>
+<script src="js/app.data.js"></script>
+<script src="js/app.orders.js"></script>
+<script src="js/app.order-detail.js"></script>
+<script src="js/app.admin.js"></script>
+<script src="js/app.catalog.js"></script>
+<script src="js/app.profile.js"></script>
+<script src="js/app.resellers.js"></script>
+<script src="js/app.render.js"></script>
+<script src="js/app.invoice.js"></script>
+<script src="js/app.init.js"></script>
+</body>
+</html>
