@@ -2461,31 +2461,12 @@
 
       <!-- ── ADMIN: CONFIGURATION ── -->
       <div class="page" id="page-admin-config">
-        <div style="display:flex;flex-direction:column;gap:20px;">
 
-          <!-- Manager Accounts -->
-          <div class="card">
-            <div class="card-header">
-              <h3 class="card-title">Manager Accounts</h3>
-              <button class="btn btn-gold btn-sm" onclick="openAddManager()">+ Add Manager</button>
-            </div>
-            <div class="table-wrap">
-              <table>
-                <thead><tr>
-                  <th>Name</th><th>Email</th><th>Permissions</th><th>Status</th><th></th>
-                </tr></thead>
-                <tbody id="managers-tbody">
-                  <tr><td colspan="5"><div class="empty-state" style="padding:24px;"><p>No managers added yet.</p></div></td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- Portal Settings -->
-          <div class="card">
+          <!-- Portal Settings row -->
+          <div class="card" style="margin-bottom:20px;">
             <div class="card-header"><h3 class="card-title">Portal Settings</h3></div>
-            <div style="padding:16px 20px;">
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px;margin-bottom:14px;">
+            <div style="padding:20px 24px;">
+              <div class="form-row" style="margin-bottom:14px;">
                 <div class="form-group" style="margin:0;">
                   <label>Business Name</label>
                   <input type="text" id="config-biz-name" placeholder="Sri Varuni Fashion Jewellery">
@@ -2494,6 +2475,8 @@
                   <label>Contact Phone</label>
                   <input type="text" id="config-phone" placeholder="+91 92475 51711">
                 </div>
+              </div>
+              <div class="form-row" style="margin-bottom:20px;">
                 <div class="form-group" style="margin:0;">
                   <label>GST Number</label>
                   <input type="text" id="config-gst" placeholder="22AAAAA0000A1Z5" style="font-family:monospace;">
@@ -2506,7 +2489,29 @@
               <button class="btn btn-primary" onclick="savePortalSettings()">Save Settings</button>
             </div>
           </div>
-        </div>
+
+          <!-- Manager Accounts -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Manager Accounts</h3>
+              <button class="btn btn-gold btn-sm" onclick="openAddManager()">+ Add Manager</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr>
+                  <th>Name</th>
+                  <th>Phone</th>
+                  <th>Permissions</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr></thead>
+                <tbody id="managers-tbody">
+                  <tr><td colspan="5"><div class="empty-state" style="padding:24px;"><p>No managers added yet. Click "+ Add Manager" to create one.</p></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
       </div>
 
       <!-- Add Manager Modal -->
