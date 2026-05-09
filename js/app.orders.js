@@ -1,6 +1,5 @@
-// app_orders.js — globals are declared in app_config.js, not here
+// app_orders.js — all globals live in app_config.js
 
-// ── Cart helpers ─────────────────────────────────────────────────────────────
 function cartTotal() {
   return orderCart.reduce((s, i) => s + i.price * i.qty, 0);
 }
@@ -12,27 +11,21 @@ function renderCart() {
   const tot   = document.getElementById('cart-total');
   if (!empty || !wrap || !tbody) return;
   if (orderCart.length === 0) {
-    empty.style.display = 'block';
-    wrap.style.display  = 'none';
-    if (tot) tot.textContent = '₹0';
-    return;
+    empty.style.display = 'block'; wrap.style.display = 'none';
+    if (tot) tot.textContent = '₹0'; return;
   }
-  empty.style.display = 'none';
-  wrap.style.display  = 'block';
+  empty.style.display = 'none'; wrap.style.display = 'block';
   let total = 0;
   tbody.innerHTML = orderCart.map((item, i) => {
-    const lt = item.price * item.qty;
-    total += lt;
+    const lt = item.price * item.qty; total += lt;
     return `<tr>
       <td style="padding:10px 12px;border-bottom:1px solid #f0eaf7;width:52px;">
-        ${item.image
-          ? `<img src="${item.image}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;">`
-          : `<div style="width:40px;height:40px;border-radius:6px;background:#3d2456;display:flex;align-items:center;justify-content:center;color:#c9a96e;font-size:18px;">◆</div>`}
+        ${item.image ? `<img src="${item.image}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;">` : `<div style="width:40px;height:40px;border-radius:6px;background:#3d2456;display:flex;align-items:center;justify-content:center;color:#c9a96e;font-size:18px;">◆</div>`}
       </td>
       <td style="padding:10px 12px;border-bottom:1px solid #f0eaf7;font-family:monospace;font-size:11px;color:#5a3578;">${item.sl}</td>
       <td style="padding:10px 12px;border-bottom:1px solid #f0eaf7;">
         <div style="font-size:13px;font-weight:600;color:#1a0f2e;">${item.name}</div>
-        <div style="font-size:11px;color:#8b7aa0;">${item.details || ''}</div>
+        <div style="font-size:11px;color:#8b7aa0;">${item.details||''}</div>
       </td>
       <td style="padding:10px 12px;border-bottom:1px solid #f0eaf7;text-align:center;">
         <button onclick="cartQty(${i},-1)" style="border:1px solid #e8d5f0;background:#fff;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:14px;">−</button>
@@ -49,15 +42,8 @@ function renderCart() {
   if (tot) tot.textContent = '₹' + total.toLocaleString();
 }
 
-function cartQty(i, d) {
-  orderCart[i].qty = Math.max(1, orderCart[i].qty + d);
-  renderCart();
-}
-
-function removeCartItem(i) {
-  orderCart.splice(i, 1);
-  renderCart();
-}
+function cartQty(i, d) { orderCart[i].qty = Math.max(1, orderCart[i].qty + d); renderCart(); }
+function removeCartItem(i) { orderCart.splice(i, 1); renderCart(); }
 
 // ── Product lookup ────────────────────────────────────────────────────────────
 function quickFill(sl) {
@@ -70,22 +56,15 @@ function lookupAndAdd() {
   const sl  = (document.getElementById('product-sl').value || '').trim().toUpperCase();
   const qty = parseInt(document.getElementById('add-qty').value) || 1;
   if (!sl) { showToast('Enter a product SL number', 'error'); return; }
-
-  // Re-sync in case catalog loaded after page init
-  if (Object.keys(PRODUCTS).length === 0 && Object.keys(CATALOG).length > 0) {
-    syncCatalogToProducts();
-  }
-
+  if (Object.keys(PRODUCTS).length === 0 && Object.keys(CATALOG).length > 0) syncCatalogToProducts();
   const prod = PRODUCTS[sl];
   if (!prod) {
-    showToast(Object.keys(PRODUCTS).length === 0
-      ? 'Catalog still loading — try again in a moment'
-      : 'Product not found: ' + sl, 'error');
+    showToast(Object.keys(PRODUCTS).length === 0 ? 'Catalog still loading — try again' : 'Product not found: ' + sl, 'error');
     return;
   }
   const ex = orderCart.find(i => i.sl === sl);
   if (ex) { ex.qty += qty; showToast('Updated qty for ' + prod.name); }
-  else    { orderCart.push({ sl, name: prod.name, details: prod.details || '', price: prod.price, qty, image: prod.image || null }); showToast('Added: ' + prod.name); }
+  else    { orderCart.push({ sl, name: prod.name, details: prod.details||'', price: prod.price, qty, image: prod.image||null }); showToast('Added: ' + prod.name); }
   document.getElementById('product-sl').value = '';
   document.getElementById('add-qty').value = '1';
   renderCart();
@@ -95,13 +74,10 @@ function lookupAndAdd() {
 function handleUpload(input) {
   if (!input.files || !input.files.length) return;
   Array.from(input.files).forEach(file => {
-    if (!file.type.startsWith('image/')) { showToast('Only image files allowed', 'error'); return; }
-    if (file.size > 10 * 1024 * 1024) { showToast(file.name + ' too large (max 10MB)', 'error'); return; }
+    if (!file.type.startsWith('image/')) { showToast('Only image files', 'error'); return; }
+    if (file.size > 10*1024*1024) { showToast(file.name + ' too large', 'error'); return; }
     const reader = new FileReader();
-    reader.onload = ev => {
-      uploadedScreenshots.push({ dataUrl: ev.target.result, name: file.name });
-      renderScreenshotGrid();
-    };
+    reader.onload = ev => { uploadedScreenshots.push({ dataUrl: ev.target.result, name: file.name }); renderScreenshotGrid(); };
     reader.readAsDataURL(file);
   });
   input.value = '';
@@ -117,14 +93,10 @@ function renderScreenshotGrid() {
       <img src="${ss.dataUrl}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:2px solid #2d7a4f;">
       <button onclick="removeScreenshot(${i})" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:#9b1c1c;color:#fff;border:none;cursor:pointer;font-size:11px;line-height:1;">✕</button>
     </div>`
-  ).join('') +
-  `<div onclick="document.getElementById('upi-screenshot-input').click()" style="width:80px;height:80px;border:2px dashed #e8d5f0;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:#8b7aa0;font-size:11px;gap:4px;">+<div>Add</div></div>`;
+  ).join('') + `<div onclick="document.getElementById('upi-screenshot-input').click()" style="width:80px;height:80px;border:2px dashed #e8d5f0;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:#8b7aa0;font-size:11px;gap:4px;">+<div>Add</div></div>`;
 }
 
-function removeScreenshot(i) {
-  uploadedScreenshots.splice(i, 1);
-  renderScreenshotGrid();
-}
+function removeScreenshot(i) { uploadedScreenshots.splice(i, 1); renderScreenshotGrid(); }
 
 // ── Ship-to-self ──────────────────────────────────────────────────────────────
 function toggleShipToSelf() {
@@ -135,18 +107,14 @@ function toggleShipToSelf() {
     if (toggle) toggle.style.background = 'var(--ok)';
     if (knob)   knob.style.transform    = 'translateX(18px)';
     const u = currentUserProfile || {};
-    document.getElementById('cust-name').value    = u.name    || '';
-    document.getElementById('cust-phone').value   = u.phone   || '';
-    document.getElementById('cust-address').value = u.address || '';
-    document.getElementById('cust-city').value    = u.city    || '';
-    document.getElementById('cust-state').value   = u.state   || '';
-    document.getElementById('cust-pin').value     = u.pin     || '';
-    showToast(!u.address ? 'Add your address in My Profile first' : 'Address auto-filled', !u.address ? 'error' : 'success');
+    ['name','phone','address','city','state','pin'].forEach(f => {
+      const el = document.getElementById('cust-' + f); if (el) el.value = u[f] || '';
+    });
+    showToast(u.address ? 'Address auto-filled' : 'Add your address in My Profile first', u.address ? 'success' : 'error');
   } else {
     if (toggle) toggle.style.background = 'var(--border)';
     if (knob)   knob.style.transform    = 'translateX(0)';
-    ['cust-name','cust-phone','cust-address','cust-city','cust-state','cust-pin']
-      .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    ['cust-name','cust-phone','cust-address','cust-city','cust-state','cust-pin'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   }
 }
 
@@ -170,9 +138,9 @@ function toggleApplyCredit() {
 
 function updatePaymentAmountDisplay() {
   const total   = cartTotal();
-  const balance = (typeof resellerCreditBalance === 'number' && !isNaN(resellerCreditBalance)) ? resellerCreditBalance : 0;
+  const balance = resellerCreditBalance || 0;
   const inp     = document.getElementById('credit-apply-input');
-  const used    = applyCreditToOrder ? Math.min(parseInt((inp && inp.value) || 0) || 0, balance, total) : 0;
+  const used    = applyCreditToOrder ? Math.min(parseInt((inp && inp.value)||0)||0, balance, total) : 0;
   const payable = Math.max(0, total - used);
   const pamount = document.getElementById('payment-amount');
   if (!pamount) return;
@@ -197,7 +165,7 @@ function goToStep(step) {
         const total = cartTotal();
         const pamount = document.getElementById('payment-amount');
         if (pamount) pamount.textContent = '₹' + total.toLocaleString();
-        const balance = (typeof resellerCreditBalance === 'number' && !isNaN(resellerCreditBalance)) ? resellerCreditBalance : 0;
+        const balance = resellerCreditBalance || 0;
         const cs = document.getElementById('credit-apply-section');
         if (cs) {
           cs.style.display = balance > 0 ? 'block' : 'none';
@@ -211,7 +179,7 @@ function goToStep(step) {
           }
         }
         updatePaymentAmountDisplay();
-      } catch(e) { console.warn('Credit section error (non-fatal):', e); }
+      } catch(e) { console.warn('Credit section (non-fatal):', e); }
     }
 
     if (step === 4) {
@@ -221,22 +189,19 @@ function goToStep(step) {
       try {
         const total = cartTotal();
         const confItems = document.getElementById('conf-items-list');
-        if (confItems) {
-          confItems.innerHTML = orderCart.map(item =>
-            `<div style="display:flex;justify-content:space-between;padding:10px 16px;border-bottom:1px solid #e8d5f0;">
-              <div><span style="font-family:monospace;font-size:11px;color:#5a3578;">${item.sl}</span>
-              <span style="font-size:13px;font-weight:500;margin-left:10px;color:#1a0f2e;">${item.name}</span></div>
-              <div style="font-size:13px;color:#4a3560;">${item.qty} × ₹${item.price.toLocaleString()} = <strong style="color:#2d1b3d;">₹${(item.qty*item.price).toLocaleString()}</strong></div>
-            </div>`
-          ).join('');
-        }
-        const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val || '—'; };
+        if (confItems) confItems.innerHTML = orderCart.map(item =>
+          `<div style="display:flex;justify-content:space-between;padding:10px 16px;border-bottom:1px solid #e8d5f0;">
+            <div><span style="font-family:monospace;font-size:11px;color:#5a3578;">${item.sl}</span>
+            <span style="font-size:13px;font-weight:500;margin-left:10px;color:#1a0f2e;">${item.name}</span></div>
+            <div style="font-size:13px;color:#4a3560;">${item.qty} × ₹${item.price.toLocaleString()} = <strong style="color:#2d1b3d;">₹${(item.qty*item.price).toLocaleString()}</strong></div>
+          </div>`).join('');
+        const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val||'—'; };
         set('conf-amount', '₹' + total.toLocaleString());
-        set('conf-cname',  document.getElementById('cust-name')?.value || '');
-        set('conf-cphone', document.getElementById('cust-phone')?.value || '');
-        set('conf-caddr',  `${document.getElementById('cust-address')?.value || ''}, ${document.getElementById('cust-city')?.value || ''} - ${document.getElementById('cust-state')?.value || ''}`);
-        set('conf-cpin',   document.getElementById('cust-pin')?.value || '');
-      } catch(e) { console.warn('Confirm screen error (non-fatal):', e); }
+        set('conf-cname',  document.getElementById('cust-name')?.value||'');
+        set('conf-cphone', document.getElementById('cust-phone')?.value||'');
+        set('conf-caddr',  `${document.getElementById('cust-address')?.value||''}, ${document.getElementById('cust-city')?.value||''} - ${document.getElementById('cust-state')?.value||''}`);
+        set('conf-cpin',   document.getElementById('cust-pin')?.value||'');
+      } catch(e) { console.warn('Confirm screen (non-fatal):', e); }
     }
 
     for (let i = 1; i <= 4; i++) {
@@ -259,33 +224,30 @@ function goToStep(step) {
 
 // ── Place order ───────────────────────────────────────────────────────────────
 async function placeOrder() {
-  if (window_placingOrder) { showToast('Already placing order, please wait...'); return; }
+  if (window_placingOrder) { showToast('Already placing — please wait'); return; }
   window_placingOrder = true;
   const btn = document.querySelector('#order-step-4 .btn-primary');
   if (btn) { btn.textContent = 'Placing...'; btn.disabled = true; }
 
   try {
-    // Upload screenshots using dataURLtoBlob (defined in app_config.js — no fetch needed)
+    // Upload screenshots using dataURLtoBlob — no fetch() on data: URLs needed
     let screenshotUrl = null;
     if (uploadedScreenshots.length > 0 && SESSION) {
       const urls = [];
       for (const ss of uploadedScreenshots) {
         try {
-          const blob = dataURLtoBlob(ss.dataUrl);           // ← safe, no fetch
+          const blob = dataURLtoBlob(ss.dataUrl);
           const path = SESSION.userId + '/' + Date.now() + '_' + ss.name;
           const url  = await sb.uploadFile('screenshots', path, blob, SESSION.token);
           urls.push(url);
-        } catch(ex) {
-          console.warn('Screenshot upload failed:', ex.message);
-          // continue — don't block order for screenshot failure
-        }
+        } catch(ex) { console.warn('Screenshot upload failed (continuing):', ex.message); }
       }
       if (urls.length) screenshotUrl = urls.join(',');
     }
 
-    const balance = (typeof resellerCreditBalance === 'number' && !isNaN(resellerCreditBalance)) ? resellerCreditBalance : 0;
+    const balance = resellerCreditBalance || 0;
     const cinp    = document.getElementById('credit-apply-input');
-    const used    = applyCreditToOrder ? Math.min(parseInt((cinp && cinp.value) || 0) || 0, balance, cartTotal()) : 0;
+    const used    = applyCreditToOrder ? Math.min(parseInt((cinp && cinp.value)||0)||0, balance, cartTotal()) : 0;
 
     const body = {
       reseller_id:      SESSION.userId,
@@ -301,60 +263,45 @@ async function placeOrder() {
       total_price:      cartTotal(),
       upi_txn_id:       document.getElementById('upi-txn').value.trim(),
       screenshot_url:   screenshotUrl,
-      notes:            (document.getElementById('order-notes')?.value || '').trim(),
+      notes:            (document.getElementById('order-notes')?.value||'').trim(),
       status:           'pending',
       payment_status:   'pending',
       credit_applied:   used
     };
 
-    console.log('Placing order:', JSON.stringify(body).slice(0, 200));
+    console.log('Submitting order to Supabase...');
     await sb.post('orders', body, SESSION.token);
-    console.log('Order posted successfully');
-
+    console.log('Order saved successfully');
     await loadOrders();
 
-    // Reset all state
-    orderCart = [];
-    uploadedScreenshots = [];
-    shipToSelfOn = false;
-    applyCreditToOrder = false;
+    // Reset
+    orderCart = []; uploadedScreenshots = []; shipToSelfOn = false; applyCreditToOrder = false;
     ['cust-name','cust-phone','cust-address','cust-city','cust-state','cust-pin','upi-txn','order-notes']
       .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     const t = document.getElementById('ship-self-toggle');
     const k = document.getElementById('ship-self-knob');
     if (t) t.style.background = 'var(--border)';
     if (k) k.style.transform  = 'translateX(0)';
-    renderCart();
-    renderScreenshotGrid();
+    renderCart(); renderScreenshotGrid();
     const badge = document.getElementById('nav-order-count');
     if (badge) badge.textContent = ORDERS.filter(o => o.resellerEmail === currentUser.email).length;
 
     if (used > 0) {
-      sb.post('credits', {
-        reseller_id: SESSION.userId,
-        amount:      -used,
-        note:        'Credit applied to order ' + (ORDERS[0]?.id || ''),
-        issued_by:   SESSION.userId
-      }, SESSION.token).catch(e => console.warn('Credit deduction failed:', e));
+      sb.post('credits', { reseller_id: SESSION.userId, amount: -used, note: 'Credit applied to order ' + (ORDERS[0]?.id||''), issued_by: SESSION.userId }, SESSION.token)
+        .catch(e => console.warn('Credit deduction failed:', e));
       resellerCreditBalance = Math.max(0, balance - used);
       const sc = document.getElementById('stat-credits');
       if (sc) sc.textContent = '₹' + resellerCreditBalance.toLocaleString();
     }
 
-    showToast('Order placed successfully! Awaiting payment verification.', 'success');
+    showToast('Order placed! Awaiting payment verification.', 'success');
     goToStep(1);
     setTimeout(() => showPage('my-orders'), 1500);
 
   } catch(err) {
     console.error('placeOrder FAILED:', err);
-    // Always show a visible, specific error
-    const msg = err.message || 'Unknown error';
+    const msg = (err.message || 'Unknown error — check console');
     showToast('Order failed: ' + msg, 'error');
-    // Keep toast longer for errors
-    setTimeout(() => {
-      const t = document.getElementById('toast');
-      if (t) t.classList.remove('show');
-    }, 6000);
   } finally {
     window_placingOrder = false;
     if (btn) { btn.textContent = '✓ Place Order'; btn.disabled = false; }
@@ -370,9 +317,7 @@ async function cancelOrder(orderId) {
   try {
     await sb.patch('orders', 'order_number=eq.' + orderId, { status: 'cancelled' }, SESSION.token);
     o.status = 'cancelled';
-    closeModal('modal-order');
-    renderMyOrders('all');
-    renderDashboard();
+    closeModal('modal-order'); renderMyOrders('all'); renderDashboard();
     showToast('Order ' + orderId + ' cancelled');
   } catch(err) { showToast('Failed: ' + err.message, 'error'); }
 }
