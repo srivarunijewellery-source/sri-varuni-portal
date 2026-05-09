@@ -3375,8 +3375,8 @@ function goToStep(step) {
     if (pamount) pamount.textContent = '₹' + cartTotal().toLocaleString();
   }
   if (step === 4) {
-    if (!document.getElementById('upi-txn').value.trim()) { showToast('Enter UPI Transaction ID', 'error'); return; }
-    if (uploadedScreenshots.length === 0) { showToast('Upload payment screenshot first', 'error'); return; }
+    if (uploadedScreenshots.length === 0) { showToast('Please upload at least one payment screenshot', 'error'); return; }
+    if (!document.getElementById('upi-txn').value.trim()) { showToast('Please enter the UPI Transaction ID', 'error'); return; }
     const total = cartTotal();
     const confItems = document.getElementById('conf-items-list');
     if (confItems) {
