@@ -34,6 +34,22 @@
     --shadow-lg: 0 12px 40px rgba(45,27,61,0.18);
     --radius: 12px;
     --radius-sm: 8px;
+    /* Short aliases used in dynamic JS-generated HTML */
+    --pd: #2d1b3d;
+    --pm: #3d2456;
+    --pl: #5a3578;
+    --goldl: #e8c98a;
+    --td: #1a0f2e;
+    --tm: #4a3560;
+    --tl: #8b7aa0;
+    --ok: #2d7a4f;
+    --okbg: #e8f5ee;
+    --warn: #b45309;
+    --warnbg: #fef3c7;
+    --err: #9b1c1c;
+    --errbg: #fee2e2;
+    --r: 12px;
+    --rs: 8px;
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -1518,7 +1534,7 @@
                   <p><strong>Click to upload</strong> — select multiple files<br>PNG, JPG up to 10MB each</p>
                 </div>
                 <!-- Screenshot previews grid -->
-                <div id="screenshots-grid" style="display:none;margin-top:12px;display:flex;flex-wrap:wrap;gap:10px;"></div>
+                <div id="screenshots-grid" style="display:none;margin-top:12px;flex-wrap:wrap;gap:10px;"></div>
               </div>
               <div style="display:flex; gap:12px;">
                 <button class="btn btn-outline" onclick="goToStep(2)">← Back</button>
@@ -2481,7 +2497,13 @@ function clearSession() {
 let ORDERS = [];
 let RESELLERS = [];
 var CATALOG = {};
-var PRODUCTS = {};
+var PRODUCTS = {
+  'SV-2024-001': { name: 'Antique Gold Necklace Set', details: 'Temple jewellery · 22g · Gold plated', price: 850, gst: 3, image: null },
+  'SV-2024-002': { name: 'Pearl Drop Earrings', details: 'Fresh water pearls · Silver tone', price: 320, gst: 3, image: null },
+  'SV-2024-003': { name: 'Kundan Bangles Set (6)', details: 'Kundan work · Size 2.6', price: 680, gst: 3, image: null },
+  'SV-2024-004': { name: 'Oxidised Silver Jhumkas', details: 'Oxidised finish · Medium size', price: 420, gst: 3, image: null },
+  'SV-2024-005': { name: 'Bridal Maang Tikka', details: 'Red & gold · Heavy work', price: 1200, gst: 3, image: null },
+};
 const USERS = {}; // not used directly anymore - Supabase Auth handles this
 let currentUserProfile = null;
 
@@ -2708,7 +2730,7 @@ async function loadResellers() {
   try {
     // Fetch ALL resellers regardless of status (admin needs to see pending too)
     const rows = await sb.get('profiles', 'role=eq.reseller&select=*&order=created_at.desc', SESSION && SESSION.token);
-    console.log('loadResellers fetched:', rows.length, 'resellers');
+    console.log('loadResellers fetched:', rows ? rows.length : 0, 'resellers', rows ? rows.map(r=>r.email+'/'+r.status).join(', ') : '');
     RESELLERS = rows.map(r => ({
       name: r.name, business: r.business, phone: r.phone,
       city: r.city, email: r.email, status: r.status || 'pending',
@@ -3184,6 +3206,12 @@ function showPage(name) {
     renderScreenshotGrid();
     renderCart();
     shipToSelfOn = false;
+    // Reload catalog if PRODUCTS is empty (race condition fix)
+    if (Object.keys(PRODUCTS).length === 0 && SESSION) {
+      loadCatalog().then(() => {
+        console.log('Catalog reloaded for place-order, products:', Object.keys(PRODUCTS).length);
+      });
+    }
     var toggle = document.getElementById('ship-self-toggle');
     var knob   = document.getElementById('ship-self-knob');
     if (toggle) toggle.style.background = 'var(--border)';
@@ -3659,20 +3687,39 @@ async function saveCredit() {
   const btn = document.querySelector('#modal-credit .btn-primary');
   btn.textContent = 'Issuing...'; btn.disabled = true;
   try {
+    console.log('saveCredit: looking up profile for', currentCreditReseller.email);
     // Get reseller profile
     const rProfiles = await sb.get('profiles', 'email=eq.' + encodeURIComponent(currentCreditReseller.email) + '&select=id,email', SESSION.token);
-    if (!rProfiles || !rProfiles.length) throw new Error('Reseller profile not found in DB');
+    console.log('saveCredit: profiles result:', JSON.stringify(rProfiles));
+    if (!rProfiles || !rProfiles.length) throw new Error('Reseller profile not found. Run fix-credits-rls.sql in Supabase first.');
     const resellerId = rProfiles[0].id;
-    // Insert credit
-    await sb.post('credits', {
-      reseller_id: resellerId,
-      amount: amount,
-      note: note || (amount > 0 ? 'Credit issued by admin' : 'Credit deducted by admin'),
-      issued_by: SESSION.userId
-    }, SESSION.token);
+    console.log('saveCredit: inserting credit for resellerId:', resellerId, 'amount:', amount);
+    // Insert credit directly via fetch for full error visibility
+    const creditUrl = SUPABASE_URL + '/rest/v1/credits';
+    const creditRes = await fetch(creditUrl, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SESSION.token,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({
+        reseller_id: resellerId,
+        amount: amount,
+        note: note || (amount > 0 ? 'Credit issued by admin' : 'Credit deducted by admin'),
+        issued_by: SESSION.userId
+      })
+    });
+    const creditText = await creditRes.text();
+    console.log('saveCredit: insert response', creditRes.status, creditText);
+    if (!creditRes.ok && creditRes.status !== 201) throw new Error('Credit insert failed: ' + creditText);
     closeModal('modal-credit');
-    showToast((amount>0?'Rs.'+amount+' credit issued to ':'Rs.'+Math.abs(amount)+' deducted from ') + currentCreditReseller.name);
-  } catch(err) { showToast('Failed: ' + err.message, 'error'); }
+    showToast((amount > 0 ? '&#8377;' + amount + ' credit issued to ' : '&#8377;' + Math.abs(amount) + ' deducted from ') + currentCreditReseller.name);
+  } catch(err) { 
+    console.error('saveCredit error:', err);
+    showToast('Failed: ' + err.message, 'error'); 
+  }
   finally { btn.textContent = 'Issue Credit'; btn.disabled = false; }
 }
 
