@@ -2747,70 +2747,87 @@ async function loadResellers() {
 // ORDER PLACEMENT (Supabase)
 // ══════════════════════════════════════════════
 async function placeOrder() {
-  const total = cartTotal();
-  const upiTxn = document.getElementById('upi-txn').value || '';
-  const notes  = document.getElementById('order-notes').value || '';
+  if (window._placingOrder) { showToast('Please wait...'); return; }
+  window._placingOrder = true;
 
-  // Upload multiple screenshots
-  let screenshotUrl = null;
-  if (uploadedScreenshots.length > 0) {
-    try {
-      const urls = [];
-      for (const ss of uploadedScreenshots) {
-        const blob = await (await fetch(ss.dataUrl)).blob();
-        const path = SESSION.userId + '/' + Date.now() + '_' + ss.name;
-        const url  = await sb.uploadFile('screenshots', path, blob, SESSION.token);
-        urls.push(url);
-      }
-      screenshotUrl = urls.join(','); // store multiple URLs comma-separated
-    } catch(e) { console.warn('Screenshot upload failed:', e); }
-  }
-
-  const orderBody = {
-    reseller_id:      SESSION.userId,
-    reseller_name:    currentUser.name,
-    reseller_email:   currentUser.email,
-    customer_name:    document.getElementById('cust-name').value,
-    customer_phone:   document.getElementById('cust-phone').value,
-    customer_address: document.getElementById('cust-address').value,
-    customer_city:    document.getElementById('cust-city').value,
-    customer_state:   document.getElementById('cust-state').value,
-    customer_pin:     document.getElementById('cust-pin').value,
-    items:            JSON.parse(JSON.stringify(orderCart)),
-    total_price:      total,
-    upi_txn_id:       upiTxn,
-    screenshot_url:   screenshotUrl,
-    notes:            notes,
-    status:           'pending',
-    payment_status:   'pending'
-  };
-
-  const btn = document.querySelector('#order-step-4 .btn-primary');
-  if (btn) { btn.textContent = 'Placing order...'; btn.disabled = true; }
+  const total  = cartTotal();
+  const upiTxn = document.getElementById('upi-txn').value.trim() || '';
+  const notes  = document.getElementById('order-notes').value.trim() || '';
+  const btn    = document.querySelector('#order-step-4 .btn-primary');
+  if (btn) { btn.textContent = 'Placing...'; btn.disabled = true; }
 
   try {
-    console.log('Placing order body:', JSON.stringify(orderBody, null, 2));
-    const result = await sb.post('orders', orderBody, SESSION.token);
-    console.log('Order placed result:', result);
+    // Upload screenshots
+    let screenshotUrl = null;
+    if (uploadedScreenshots.length > 0) {
+      const urls = [];
+      for (const ss of uploadedScreenshots) {
+        try {
+          const blob = await (await fetch(ss.dataUrl)).blob();
+          const path = SESSION.userId + '/' + Date.now() + '_' + ss.name;
+          const url  = await sb.uploadFile('screenshots', path, blob, SESSION.token);
+          urls.push(url);
+        } catch(ex) { console.warn('Screenshot upload failed:', ex); }
+      }
+      if (urls.length) screenshotUrl = urls.join(',');
+    }
+
+    const orderBody = {
+      reseller_id:      SESSION.userId,
+      reseller_name:    currentUser.name,
+      reseller_email:   currentUser.email,
+      customer_name:    document.getElementById('cust-name').value,
+      customer_phone:   document.getElementById('cust-phone').value,
+      customer_address: document.getElementById('cust-address').value,
+      customer_city:    document.getElementById('cust-city').value,
+      customer_state:   document.getElementById('cust-state').value,
+      customer_pin:     document.getElementById('cust-pin').value,
+      items:            JSON.parse(JSON.stringify(orderCart)),
+      total_price:      total,
+      upi_txn_id:       upiTxn,
+      screenshot_url:   screenshotUrl,
+      notes:            notes,
+      status:           'pending',
+      payment_status:   'pending'
+    };
+
+    await sb.post('orders', orderBody, SESSION.token);
     await loadOrders();
+
+    // Reset form
+    orderCart = [];
+    uploadedScreenshots = [];
+    renderCart();
+    renderScreenshotGrid();
+    shipToSelfOn = false;
+    ['cust-name','cust-phone','cust-address','cust-city','cust-state','cust-pin','upi-txn','order-notes'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    const toggle = document.getElementById('ship-self-toggle');
+    const knob   = document.getElementById('ship-self-knob');
+    if (toggle) toggle.style.background = 'var(--border)';
+    if (knob)   knob.style.transform = 'translateX(0)';
+
+    // Update badge
     const myCount = ORDERS.filter(o => o.resellerEmail === currentUser.email).length;
     const badge = document.getElementById('nav-order-count');
     if (badge) badge.textContent = myCount;
-    showToast('Order placed successfully! We will verify payment shortly.');
-    orderCart = [];
-    renderCart();
+
+    showToast('Order placed! We will verify payment shortly.');
     goToStep(1);
-    setTimeout(() => showPage('my-orders'), 1500);
+    setTimeout(() => showPage('my-orders'), 1200);
   } catch(err) {
     console.error('placeOrder error:', err);
     let msg = err.message || 'Please try again';
-    // Parse Supabase error if JSON
-    try { const parsed = JSON.parse(msg); msg = parsed.message || parsed.hint || msg; } catch(e) {}
-    showToast('Failed to place order: ' + msg, 'error');
+    try { const p = JSON.parse(msg); msg = p.message || p.hint || msg; } catch(ex) {}
+    showToast('Failed: ' + msg, 'error');
   } finally {
+    window._placingOrder = false;
     if (btn) { btn.textContent = '✓ Place Order'; btn.disabled = false; }
   }
 }
+
 
 
 // ══════════════════════════════════════════════
@@ -3337,55 +3354,53 @@ function lookupAndAdd() {
 }
 
 function renderCart() {
-  const empty = document.getElementById('cart-empty');
-  const wrap  = document.getElementById('cart-table-wrap');
-  const tbody = document.getElementById('cart-tbody');
+  const empty   = document.getElementById('cart-empty');
+  const wrap    = document.getElementById('cart-table-wrap');
+  const tbody   = document.getElementById('cart-tbody');
   const totalEl = document.getElementById('cart-total');
+  if (!empty || !wrap || !tbody) return;
 
   if (orderCart.length === 0) {
     empty.style.display = 'block';
-    wrap.style.display = 'none';
+    wrap.style.display  = 'none';
+    if (totalEl) totalEl.textContent = '₹0';
     return;
   }
   empty.style.display = 'none';
-  wrap.style.display = 'block';
+  wrap.style.display  = 'block';
 
   let total = 0;
   tbody.innerHTML = orderCart.map((item, idx) => {
     const lineTotal = item.price * item.qty;
     total += lineTotal;
-    return `
-      <tr>
-        <td style="padding:10px 14px; border-bottom:1px solid #f5f0f9; width:52px;">
-          ${item.image
-            ? `<img src="${item.image}" style="width:44px;height:44px;object-fit:cover;border-radius:8px;display:block;">`
-            : `<div style="width:44px;height:44px;border-radius:8px;background:linear-gradient(135deg,var(--purple-light),var(--purple-dark));display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(201,169,110,.7)" stroke-width="1.5"><path d="M12 2L8 7H2l4 4-2 7 8-4 8 4-2-7 4-4h-6L12 2z"/></svg></div>`}
-        </td>
-        <td style="padding:12px 14px; border-bottom:1px solid #f5f0f9; font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; font-size:12px; color:var(--purple-light);">${item.sl}</td>
-        <td style="padding:12px 14px; border-bottom:1px solid #f5f0f9;">
-          <strong style="font-size:13px;">${item.name}</strong>
-          <div style="font-size:11px; color:var(--text-light); margin-top:2px;">${item.details}</div>
-        </td>
-        <td style="padding:12px 14px; border-bottom:1px solid #f5f0f9; text-align:center;">
-          <div style="display:inline-flex; align-items:center; gap:6px; border:1px solid var(--border); border-radius:6px; padding:2px 6px;">
-            <button onclick="cartQty(${idx}, -1)" style="border:none; background:none; cursor:pointer; color:var(--text-light); font-size:16px; line-height:1; padding:0 2px;">−</button>
-            <span style="font-size:13px; font-weight:600; min-width:20px; text-align:center;">${item.qty}</span>
-            <button onclick="cartQty(${idx}, 1)"  style="border:none; background:none; cursor:pointer; color:var(--text-light); font-size:16px; line-height:1; padding:0 2px;">+</button>
-          </div>
-        </td>
-        <td style="padding:12px 14px; border-bottom:1px solid #f5f0f9; text-align:right; font-size:13px;">₹${item.price.toLocaleString()}</td>
-        <td style="padding:12px 14px; border-bottom:1px solid #f5f0f9; text-align:right; font-size:13px; font-weight:600;">₹${lineTotal.toLocaleString()}</td>
-        <td style="padding:12px 14px; border-bottom:1px solid #f5f0f9; text-align:center;">
-          <button onclick="removeCartItem(${idx})" style="border:none; background:var(--danger-bg); color:var(--danger); border-radius:6px; padding:4px 8px; cursor:pointer; font-size:12px;">✕</button>
-        </td>
-      </tr>
-    `;
+    const img = item.image
+      ? '<img src="' + item.image + '" style="width:40px;height:40px;object-fit:cover;border-radius:6px;display:block;">'
+      : '<div style="width:40px;height:40px;border-radius:6px;background:#3d2456;display:flex;align-items:center;justify-content:center;"><svg width=14 height=14 viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#c9a96e\" stroke-width=\"1.5\"><path d=\"M12 2L8 7H2l4 4-2 7 8-4 8 4-2-7 4-4h-6L12 2z\"/></svg></div>';
+    return '<tr>' +
+      '<td style="padding:10px 12px;border-bottom:1px solid #f0eaf7;width:48px;">' + img + '</td>' +
+      '<td style="padding:10px 12px;border-bottom:1px solid #f0eaf7;font-family:monospace;font-size:11px;color:#5a3578;">' + item.sl + '</td>' +
+      '<td style="padding:10px 12px;border-bottom:1px solid #f0eaf7;">' +
+        '<div style="font-size:13px;font-weight:600;color:#1a0f2e;">' + item.name + '</div>' +
+        '<div style="font-size:11px;color:#8b7aa0;margin-top:2px;">' + item.details + '</div>' +
+      '</td>' +
+      '<td style="padding:10px 12px;border-bottom:1px solid #f0eaf7;text-align:center;">' +
+        '<div style="display:inline-flex;align-items:center;gap:6px;border:1px solid #e8d5f0;border-radius:6px;padding:2px 8px;">' +
+          '<button onclick="cartQty(' + idx + ',-1)" style="border:none;background:none;cursor:pointer;color:#8b7aa0;font-size:16px;line-height:1;padding:0;">−</button>' +
+          '<span style="font-size:13px;font-weight:600;color:#1a0f2e;min-width:20px;text-align:center;">' + item.qty + '</span>' +
+          '<button onclick="cartQty(' + idx + ',1)"  style="border:none;background:none;cursor:pointer;color:#8b7aa0;font-size:16px;line-height:1;padding:0;">+</button>' +
+        '</div>' +
+      '</td>' +
+      '<td style="padding:10px 12px;border-bottom:1px solid #f0eaf7;text-align:right;font-size:13px;color:#4a3560;">₹' + item.price.toLocaleString() + '</td>' +
+      '<td style="padding:10px 12px;border-bottom:1px solid #f0eaf7;text-align:right;font-size:13px;font-weight:700;color:#2d1b3d;">₹' + lineTotal.toLocaleString() + '</td>' +
+      '<td style="padding:10px 12px;border-bottom:1px solid #f0eaf7;text-align:center;">' +
+        '<button onclick="removeCartItem(' + idx + ')" style="border:none;background:#fee2e2;color:#9b1c1c;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:12px;">✕</button>' +
+      '</td></tr>';
   }).join('');
 
-  totalEl.textContent = '₹' + total.toLocaleString();
-  // Add magnify to cart images after render
+  if (totalEl) totalEl.textContent = '₹' + total.toLocaleString();
   setTimeout(addCartImageMagnify, 50);
 }
+
 
 function cartQty(idx, delta) {
   orderCart[idx].qty += delta;
@@ -3405,54 +3420,52 @@ function cartTotal() {
 }
 
 function goToStep(step) {
-  // Validate step transitions
-  if (step === 2) {
-    if (orderCart.length === 0) { showToast('Add at least one product to continue', 'error'); return; }
+  if (step === 2 && orderCart.length === 0) {
+    showToast('Add at least one product first', 'error'); return;
   }
   if (step === 3) {
     const name = document.getElementById('cust-name').value.trim();
     const addr = document.getElementById('cust-address').value.trim();
     const pin  = document.getElementById('cust-pin').value.trim();
-    if (!name || !addr || !pin) { showToast('Please fill all customer details', 'error'); return; }
-  }
-  if (step === 4) {
-    // Validate screenshot uploaded
-    const upiTxn = document.getElementById('upi-txn').value.trim();
-    if (uploadedScreenshots.length === 0) { showToast('Please upload at least one payment screenshot', 'error'); return; }
-    if (!upiTxn) { showToast('Please enter the UPI transaction ID', 'error'); return; }
-    // Populate confirm page
-    const total = cartTotal();
-    // Items list
-    const itemsHtml = orderCart.map(item => `
-      <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 16px; border-bottom:1px solid var(--border);">
-        <div>
-          <span style="font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; font-size:11px; color:var(--purple-light);">${item.sl}</span>
-          <span style="font-size:13px; font-weight:500; margin-left:10px;">${item.name}</span>
-        </div>
-        <div style="font-size:13px; color:var(--text-mid); margin-left:16px; white-space:nowrap;">
-          ${item.qty} × ₹${item.price.toLocaleString()} = <strong style="color:var(--purple-dark);">₹${(item.qty * item.price).toLocaleString()}</strong>
-        </div>
-      </div>
-    `).join('');
-    document.getElementById('conf-items-list').innerHTML = itemsHtml;
-    document.getElementById('conf-amount').textContent = '₹' + total.toLocaleString();
-    document.getElementById('conf-cname').textContent  = document.getElementById('cust-name').value;
-    document.getElementById('conf-cphone').textContent = document.getElementById('cust-phone').value;
-    document.getElementById('conf-caddr').textContent  = document.getElementById('cust-address').value + ', ' + document.getElementById('cust-city').value + ', ' + document.getElementById('cust-state').value;
-    document.getElementById('conf-cpin').textContent   = document.getElementById('cust-pin').value;
-  }
-  if (step === 3) {
+    if (!name || !addr || !pin) { showToast('Please fill name, address and pincode', 'error'); return; }
+    // Set payment amount
     document.getElementById('payment-amount').textContent = '₹' + cartTotal().toLocaleString();
   }
-
+  if (step === 4) {
+    const upiTxn = document.getElementById('upi-txn').value.trim();
+    if (uploadedScreenshots.length === 0) { showToast('Upload at least one payment screenshot', 'error'); return; }
+    if (!upiTxn) { showToast('Enter UPI Transaction ID', 'error'); return; }
+    // Populate summary
+    const total = cartTotal();
+    const itemsHtml = orderCart.map(item =>
+      '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid #e8d5f0;">' +
+        '<div>' +
+          '<span style="font-family:monospace;font-size:11px;color:#5a3578;">' + item.sl + '</span>' +
+          '<span style="font-size:13px;font-weight:500;margin-left:10px;color:#1a0f2e;">' + item.name + '</span>' +
+        '</div>' +
+        '<div style="font-size:13px;color:#4a3560;white-space:nowrap;">' +
+          item.qty + ' × ₹' + item.price.toLocaleString() + ' = <strong style="color:#2d1b3d;">₹' + (item.qty * item.price).toLocaleString() + '</strong>' +
+        '</div>' +
+      '</div>'
+    ).join('');
+    document.getElementById('conf-items-list').innerHTML = itemsHtml;
+    document.getElementById('conf-amount').textContent  = '₹' + total.toLocaleString();
+    document.getElementById('conf-cname').textContent   = document.getElementById('cust-name').value;
+    document.getElementById('conf-cphone').textContent  = document.getElementById('cust-phone').value;
+    document.getElementById('conf-caddr').textContent   = document.getElementById('cust-address').value + ', ' + document.getElementById('cust-city').value + ', ' + document.getElementById('cust-state').value;
+    document.getElementById('conf-cpin').textContent    = document.getElementById('cust-pin').value;
+  }
+  // Show correct step, hide others
   for (let i = 1; i <= 4; i++) {
-    document.getElementById('order-step-' + i).style.display = i === step ? 'block' : 'none';
-    const s = document.getElementById('step-' + i);
-    s.className = 'step' + (i < step ? ' done' : i === step ? ' active' : '');
-    s.querySelector('.step-num').textContent = i < step ? '✓' : i;
+    const stepEl = document.getElementById('order-step-' + i);
+    if (stepEl) stepEl.style.display = i === step ? 'block' : 'none';
+    const dot = document.getElementById('step-' + i);
+    if (dot) {
+      dot.className = 'step' + (i < step ? ' done' : i === step ? ' active' : '');
+      dot.querySelector('.step-num').textContent = i < step ? '✓' : i;
+    }
   }
 }
-
 
 
 function handleUpload(input) {
