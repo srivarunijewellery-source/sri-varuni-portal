@@ -2431,10 +2431,14 @@
       <h3>Reseller Profile</h3>
       <button class="modal-close" onclick="closeModal('modal-reseller-detail')">&#215;</button>
     </div>
-        <div class="modal-body" id="reseller-detail-body" style="max-height:75vh;overflow-y:auto;">
+        <div class="modal-body" id="reseller-detail-body" style="max-height:62vh;overflow-y:auto;">
       <div style="text-align:center;padding:32px;color:var(--tl);">Loading...</div>
-    </
-</div></div></div>
+    </div>
+    <div class="modal-footer" id="reseller-detail-footer" style="display:flex;gap:8px;flex-wrap:wrap;padding:16px 20px;border-top:1px solid var(--border);">
+      <button class="btn btn-outline" onclick="closeModal('modal-reseller-detail')">Close</button>
+    </div>
+  </div>
+</div>
 
 
 <!-- Toast notification -->
@@ -3953,6 +3957,17 @@ function filterResellers(filter, el) {
   renderResellers();
 }
 
+async function blockReseller(email) {
+  if (!confirm('Block reseller ' + email + '? They will not be able to log in.')) return;
+  try {
+    await sb.patch('profiles', 'email=eq.' + email, { status: 'suspended' }, SESSION.token);
+    const r = RESELLERS.find(x => x.email === email);
+    if (r) r.status = 'suspended';
+    renderResellers();
+    showToast('Reseller blocked — they can no longer log in', 'error');
+  } catch(err) { showToast('Failed: ' + err.message, 'error'); }
+}
+
 async function approveReseller(email) {
   try {
     await sb.patch('profiles', 'email=eq.' + email, { status: 'active' }, SESSION.token);
@@ -4084,6 +4099,26 @@ async function viewResellerDetail(email) {
       '<td style="padding:9px 14px;border-bottom:1px solid #f5f0f9;font-size:11px;color:var(--tl);">'+(o.date?formatDate(o.date):'—')+'</td></tr>').join('') || '<tr><td colspan="5" style="padding:16px;text-align:center;color:var(--tl);">No orders yet</td></tr>') +
     '</tbody></table></div></div>';
 
+  // Set modal footer actions based on status
+  const footer = document.getElementById('reseller-detail-footer');
+  if (footer) {
+    const isPending   = r.status === 'pending';
+    const isActive    = r.status === 'active';
+    const isSuspended = r.status === 'suspended';
+    footer.innerHTML =
+      '<button class="btn btn-outline" onclick="closeModal(\'modal-reseller-detail\')">Close</button>' +
+      (isPending
+        ? '<button class="btn btn-success" onclick="approveReseller(\''+email+'\');closeModal(\'modal-reseller-detail\')">✓ Approve Reseller</button>' +
+          '<button class="btn btn-danger" onclick="rejectReseller(\''+email+'\')" >✕ Reject Request</button>'
+        : '') +
+      (isActive
+        ? '<button class="btn btn-gold btn-sm" onclick="closeModal(\'modal-reseller-detail\');openIssueCredit(\''+email+'\')">+ Issue Credit</button>' +
+          '<button class="btn btn-danger btn-sm" onclick="blockReseller(\''+email+'\');closeModal(\'modal-reseller-detail\')">⊘ Block Reseller</button>'
+        : '') +
+      (isSuspended
+        ? '<button class="btn btn-success btn-sm" onclick="approveReseller(\''+email+'\');closeModal(\'modal-reseller-detail\')">↺ Reinstate</button>'
+        : '');
+  }
   openModal('modal-reseller-detail');
 }
 
@@ -4227,10 +4262,11 @@ function searchOrders(q) {
 }
 
 function renderResellers() {
-  const filtered = RESELLERS.filter(r => resellerFilter === 'pending'
-    ? (r.status === 'pending' || r.status === 'suspended')
-    : r.status === 'active'
-  );
+  const filtered = RESELLERS.filter(r => {
+    if (resellerFilter === 'pending')    return r.status === 'pending';
+    if (resellerFilter === 'suspended')  return r.status === 'suspended';
+    return r.status === 'active';
+  });
   const pendingCount = RESELLERS.filter(r => r.status === 'pending').length;
   const badge = document.getElementById('pending-resellers-badge');
   if (badge) badge.textContent = pendingCount;
@@ -4247,10 +4283,10 @@ function renderResellers() {
       <td>${isPending?'<span class="badge badge-pending">Pending</span>':'<span class="badge badge-delivered">Active</span>'}</td>
       <td style="display:flex;gap:4px;flex-wrap:wrap;">
         ${isPending
-          ? `<button class="btn btn-success btn-sm" onclick="approveReseller('${r.email}')">✓ Approve</button>
-             <button class="btn btn-danger btn-sm" onclick="rejectReseller('${r.email}')">✕ Reject</button>`
+          ? `<button class="btn btn-outline btn-sm" onclick="viewResellerDetail('${r.email}')">View & Decide</button>`
           : `<button class="btn btn-outline btn-sm" onclick="viewResellerDetail('${r.email}')">View</button>
-             <button class="btn btn-gold btn-sm" onclick="openIssueCredit('${r.email}')">+ Credit</button>`}
+             <button class="btn btn-gold btn-sm" onclick="openIssueCredit('${r.email}')">+ Credit</button>
+             <button class="btn btn-danger btn-sm" onclick="blockReseller('${r.email}')">⊘ Block</button>`}
       </td>
     </tr>`;
   }).join('') || `<tr><td colspan="7"><div class="empty-state" style="padding:24px;"><p>${resellerFilter==='pending'?'No pending requests':'No active resellers'}</p></div></td></tr>`;
