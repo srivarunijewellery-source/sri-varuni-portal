@@ -3088,7 +3088,7 @@ async function loadAllData() {
       loadCatalog().catch(e => console.warn('Catalog load failed:', e)),
       loadOrders().catch(e => console.warn('Orders load failed:', e))
     ]);
-    if (currentUser && currentUser.role === 'admin') {
+    if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'manager')) {
       await loadResellers().catch(e => console.warn('Resellers load failed:', e));
     }
   } catch(e) { console.warn('loadAllData error:', e); }
