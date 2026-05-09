@@ -1009,10 +1009,45 @@
   }
 
   @media (max-width: 480px) {
-    .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
-    .stat-card { padding: 14px 16px; }
-    .stat-value { font-size: 20px; }
+    .stats-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .stat-card { padding: 12px 14px; }
+    .stat-value { font-size: 18px; }
     .stat-label { font-size: 11px; }
+    /* Order flow mobile */
+    .step { min-width: 60px; padding: 8px 6px; }
+    .step-label { font-size: 9px; }
+    .step-num { width: 22px; height: 22px; font-size: 10px; }
+    /* Cards */
+    .card-body { padding: 14px 12px; }
+    .card-header { padding: 12px 14px; }
+    .card-title { font-size: 14px; }
+    /* Tables: hide less critical cols on mobile */
+    .hide-mobile { display: none !important; }
+    /* Buttons wrap */
+    .btn { padding: 9px 14px; font-size: 12px; }
+    .btn-sm { padding: 6px 10px; font-size: 11px; }
+    /* Modal */
+    .modal-body { padding: 16px 14px; }
+    .modal-footer { padding: 12px 14px; gap: 8px; flex-wrap: wrap; }
+    .modal-footer .btn { flex: 1; min-width: 120px; }
+    /* Info rows on mobile */
+    .info-row { flex-direction: column; gap: 2px; padding: 8px 0; }
+    .info-row label { min-width: unset; }
+    /* Place order form */
+    #page-place-order .card-body { padding: 14px 12px; }
+    /* Auth */
+    .auth-card { padding: 24px 16px; margin: 16px; }
+    /* Sidebar narrower */
+    .sidebar { width: 260px; }
+    /* Topbar */
+    .topbar { height: 52px; }
+    .topbar-title { font-size: 15px; }
+    /* Admin pending table — show fewer columns */
+    #admin-pending-tbody td:nth-child(3),
+    #admin-pending-tbody th:nth-child(3) { display: none; }
+    /* My orders — hide tracking col */
+    #my-orders-tbody td:nth-child(6),
+    #my-orders-tbody td:nth-child(6) { display: none; }
   }
 </style>
 </head>
@@ -1682,7 +1717,7 @@
           </button>
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;">
+        <div class="grid-2" style="align-items:start;">
 
           <!-- LEFT COLUMN -->
           <div style="display:flex;flex-direction:column;gap:20px;">
@@ -2880,7 +2915,8 @@ async function loadOrders() {
       status: r.status, tracking: r.tracking_number, courier: r.courier,
       date: r.created_at ? r.created_at.slice(0,10) : '',
       upiTxn: r.upi_txn_id, screenshotUrl: r.screenshot_url,
-      paymentStatus: r.payment_status, notes: r.notes
+      paymentStatus: r.payment_status, notes: r.notes,
+      creditApplied: r.credit_applied || 0
     }));
   } catch(e) { console.error('loadOrders:', e); }
 }
@@ -3366,9 +3402,11 @@ function viewOrder(orderId) {
     '<p class="text-sm text-muted fw-600 mb-16" style="letter-spacing:1px;text-transform:uppercase">Order Info</p>' +
     '<div class="info-row"><label>Order ID</label><span style="font-family:monospace;font-size:12px">' + o.id + '</span></div>' +
     itemsSection +
-    '<div class="info-row"><label>Total</label><span style="font-weight:700;color:var(--purple-dark)">₹' + o.price.toLocaleString() + '</span></div>' +
+    '<div class="info-row"><label>Order Total</label><span style="font-weight:700;color:var(--purple-dark)">₹' + o.price.toLocaleString() + '</span></div>' +
+    (o.creditApplied > 0 ? '<div class="info-row"><label>Credit Applied</label><span style="color:#059669;font-weight:600;">-₹' + o.creditApplied.toLocaleString() + '</span></div>' +
+    '<div class="info-row"><label>Amount Paid</label><span style="font-weight:700;color:var(--purple-dark)">₹' + Math.max(0, o.price - o.creditApplied).toLocaleString() + (o.creditApplied >= o.price ? ' <span style="font-size:11px;color:#059669;">(fully via credits)</span>' : '') + '</span></div>' : '') +
     '<div class="info-row"><label>Date</label><span>' + (o.date ? formatDate(o.date) : '—') + '</span></div>' +
-    '<div class="info-row"><label>UPI Txn ID</label><span style="font-family:monospace;font-size:12px">' + (o.upiTxn || '—') + '</span></div>' +
+    '<div class="info-row"><label>UPI Txn ID</label><span style="font-family:monospace;font-size:12px">' + (o.upiTxn === 'CREDIT_FULL' ? '<em style="color:#059669">Fully paid by credits</em>' : (o.upiTxn || '—')) + '</span></div>' +
     '<div class="info-row"><label>Payment</label><span class="badge ' + (o.paymentStatus === 'verified' ? 'badge-delivered' : 'badge-pending') + '">' + (o.paymentStatus === 'verified' ? '&#10003; Verified' : 'Pending') + '</span></div>' +
     buildScreenshotSection(o) +
     '</div><div>' +
@@ -3387,13 +3425,13 @@ function viewOrder(orderId) {
     footer.innerHTML =
       '<button class="btn btn-outline" onclick="closeModal(\'modal-order\')">Close</button>' +
       '<button class="btn btn-outline btn-sm" onclick="openEditOrder(\'' + o.id + '\')">&#9998; Edit</button>' +
-      (o.status === 'pending' ? '<button class="btn btn-success btn-sm" onclick="verifyPayment(\'' + o.id + '\')">&#10003; Verify Payment</button>' : '') +
+      (o.status === 'pending' ? '<button class="btn btn-success btn-sm" onclick="confirmVerifyPayment(\'' + o.id + '\')">&#10003; Verify Payment</button>' : '') +
       (o.status === 'confirmed' ? '<button class="btn btn-primary btn-sm" onclick="openTracking(\'' + o.id + '\')">&#43; Add Tracking</button>' : '') +
-      '<button class="btn btn-outline btn-sm" onclick="showInvoice(\'' + o.id + '\')">Invoice</button>';
+      (o.status !== 'cancelled' ? '<button class="btn btn-outline btn-sm" onclick="showInvoice(\'' + o.id + '\')">Invoice</button>' : '');
   } else {
     footer.innerHTML =
       '<button class="btn btn-outline" onclick="closeModal(\'modal-order\')">Close</button>' +
-      '<button class="btn btn-outline btn-sm" onclick="showInvoice(\'' + o.id + '\')">Invoice</button>' +
+      (o.status !== 'cancelled' ? '<button class="btn btn-outline btn-sm" onclick="showInvoice(\'' + o.id + '\')">Invoice</button>' : '') +
       (o.tracking ? '<button class="btn btn-primary btn-sm" onclick="showLabel(\'' + o.id + '\')">Shipping Label</button>' : '') +
       (o.status === 'pending' ? '<button class="btn btn-danger btn-sm" onclick="cancelOrder(\'' + o.id + '\')">&#215; Cancel Order</button>' : '');
   }
@@ -3407,6 +3445,45 @@ function openTracking(orderId) {
   closeModal('modal-order');
   openModal('modal-tracking');
 }/* === app.admin.js === */
+function confirmVerifyPayment(orderId) {
+  const o = ORDERS.find(x => x.id === orderId);
+  if (!o) return;
+
+  const creditLine = o.creditApplied > 0
+    ? '<div class="info-row"><label>Credit Applied</label><span style="color:#059669;font-weight:600;">-\u20b9' + o.creditApplied.toLocaleString() + '</span></div>'
+      + '<div class="info-row"><label>UPI Amount</label><span style="font-weight:700;">\u20b9' + Math.max(0, o.price - o.creditApplied).toLocaleString() + '</span></div>'
+    : '';
+  const upiLine = o.upiTxn === 'CREDIT_FULL'
+    ? '<div class="info-row"><label>UPI Txn</label><span style="color:#059669;font-style:italic;">Fully paid by credits</span></div>'
+    : '<div class="info-row"><label>UPI Txn ID</label><span style="font-family:monospace;font-size:13px;font-weight:600;color:#3d2456;">' + (o.upiTxn || '—') + '</span></div>';
+
+  const panel = document.createElement('div');
+  panel.id = 'verify-confirm-panel';
+  panel.style.cssText = 'margin-top:20px;border-top:2px solid #e8d5f0;padding-top:16px;';
+  panel.innerHTML =
+    '<p style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#8b7aa0;margin-bottom:12px;">Verify Payment Details</p>' +
+    '<div style="background:#faf8fc;border:1px solid #e8d5f0;border-radius:10px;margin-bottom:14px;">' +
+    '<div class="info-row" style="padding:10px 16px;"><label>Order Total</label><span style="font-weight:700;">\u20b9' + o.price.toLocaleString() + '</span></div>' +
+    creditLine + upiLine +
+    buildScreenshotSection(o) +
+    '</div>' +
+    '<div style="display:flex;gap:10px;flex-wrap:wrap;">' +
+    '<button class="btn btn-outline" id="verify-cancel-btn">✕ Cancel</button>' +
+    '<button class="btn btn-success" id="verify-confirm-btn">✓ Confirm & Verify Payment</button>' +
+    '</div>';
+
+  const body = document.getElementById('modal-order-body');
+  // Remove existing panel if any
+  const old = document.getElementById('verify-confirm-panel');
+  if (old) old.remove();
+  body.appendChild(panel);
+
+  document.getElementById('verify-cancel-btn').onclick = function() { panel.remove(); };
+  document.getElementById('verify-confirm-btn').onclick = function() { verifyPayment(orderId); };
+
+  setTimeout(function() { panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 50);
+}
+
 async function verifyPayment(orderId) {
   const o = ORDERS.find(x => x.id === orderId);
   if (!o) return;
@@ -4159,7 +4236,7 @@ function renderResellers() {
 }
 /* === app.invoice.js === */
 function renderInvoices(role) {
-  const orders = role === 'reseller' ? ORDERS.filter(o => o.resellerEmail === currentUser?.email) : ORDERS;
+  const orders = (role === 'reseller' ? ORDERS.filter(o => o.resellerEmail === currentUser?.email) : ORDERS).filter(o => o.status !== 'cancelled');
   const tbody = document.getElementById(role === 'reseller' ? 'invoices-tbody' : 'admin-invoices-tbody');
   if (!tbody) return;
   tbody.innerHTML = orders.map(o => {
