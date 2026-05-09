@@ -2461,7 +2461,7 @@
 
       <!-- ── ADMIN: CONFIGURATION ── -->
       <div class="page" id="page-admin-config">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;">
+        <div style="display:flex;flex-direction:column;gap:20px;">
 
           <!-- Manager Accounts -->
           <div class="card">
@@ -2484,22 +2484,24 @@
           <!-- Portal Settings -->
           <div class="card">
             <div class="card-header"><h3 class="card-title">Portal Settings</h3></div>
-            <div style="padding:16px 20px;display:flex;flex-direction:column;gap:14px;">
-              <div class="form-group" style="margin:0;">
-                <label>Business Name</label>
-                <input type="text" id="config-biz-name" placeholder="Sri Varuni Fashion Jewellery">
-              </div>
-              <div class="form-group" style="margin:0;">
-                <label>Contact Phone</label>
-                <input type="text" id="config-phone" placeholder="+91 92475 51711">
-              </div>
-              <div class="form-group" style="margin:0;">
-                <label>GST Number</label>
-                <input type="text" id="config-gst" placeholder="22AAAAA0000A1Z5" style="font-family:monospace;">
-              </div>
-              <div class="form-group" style="margin:0;">
-                <label>Default GST % on Orders</label>
-                <input type="number" id="config-gst-pct" placeholder="3" min="0" max="28">
+            <div style="padding:16px 20px;">
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px;margin-bottom:14px;">
+                <div class="form-group" style="margin:0;">
+                  <label>Business Name</label>
+                  <input type="text" id="config-biz-name" placeholder="Sri Varuni Fashion Jewellery">
+                </div>
+                <div class="form-group" style="margin:0;">
+                  <label>Contact Phone</label>
+                  <input type="text" id="config-phone" placeholder="+91 92475 51711">
+                </div>
+                <div class="form-group" style="margin:0;">
+                  <label>GST Number</label>
+                  <input type="text" id="config-gst" placeholder="22AAAAA0000A1Z5" style="font-family:monospace;">
+                </div>
+                <div class="form-group" style="margin:0;">
+                  <label>Default GST %</label>
+                  <input type="number" id="config-gst-pct" placeholder="3" min="0" max="28">
+                </div>
               </div>
               <button class="btn btn-primary" onclick="savePortalSettings()">Save Settings</button>
             </div>
@@ -2529,10 +2531,11 @@
                 <input type="text" id="mgr-phone" placeholder="Phone number">
               </div>
               <div class="form-group" style="margin:0;">
-                <label>Password</label>
+                <label id="mgr-pass-label">Password</label>
                 <input type="password" id="mgr-pass" placeholder="Min. 8 characters">
               </div>
             </div>
+            <div id="mgr-signup-log" style="display:none;background:#1a0f2e;border-radius:8px;padding:10px 14px;font-family:monospace;font-size:11px;color:#c9a96e;max-height:100px;overflow-y:auto;white-space:pre-wrap;margin-bottom:12px;"></div>
             <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:4px;">
               <div style="background:#faf8fc;padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
                 <span style="font-size:12px;font-weight:700;color:var(--text-light);letter-spacing:.8px;text-transform:uppercase;">Permissions</span>
@@ -4405,45 +4408,103 @@ function openAddManager() {
   document.getElementById('mgr-email').value = '';
   document.getElementById('mgr-phone').value = '';
   document.getElementById('mgr-pass').value  = '';
+  // Reset field states for create mode
+  const emailEl = document.getElementById('mgr-email');
+  const passEl  = document.getElementById('mgr-pass');
+  const passLbl = document.getElementById('mgr-pass-label');
+  const logEl   = document.getElementById('mgr-signup-log');
+  if (emailEl) emailEl.readOnly = false;
+  if (passEl)  passEl.placeholder = 'Min. 8 characters';
+  if (passLbl) passLbl.textContent = 'Password';
+  if (logEl)   { logEl.style.display = 'none'; logEl.textContent = ''; }
+  const btn = document.querySelector('#modal-add-manager .btn-primary');
+  if (btn) btn.textContent = 'Create Manager Account';
   setAllPerms(false);
   openModal('modal-add-manager');
 }
 
 async function saveManager() {
-  const name  = document.getElementById('mgr-name').value.trim();
-  const email = document.getElementById('mgr-email').value.trim();
-  const phone = document.getElementById('mgr-phone').value.trim();
-  const pass  = document.getElementById('mgr-pass').value;
-  if (!name || !email || !pass) { showToast('Name, email and password are required', 'error'); return; }
-  if (pass.length < 8) { showToast('Password must be at least 8 characters', 'error'); return; }
+  const name    = document.getElementById('mgr-name').value.trim();
+  const email   = document.getElementById('mgr-email').value.trim();
+  const phone   = document.getElementById('mgr-phone').value.trim();
+  const pass    = document.getElementById('mgr-pass').value;
+  const isEdit  = document.getElementById('manager-modal-title').textContent === 'Edit Manager';
+  const perms   = ALL_PERMISSIONS.filter(k => document.getElementById('perm-' + k)?.checked);
+  const btn     = document.querySelector('#modal-add-manager .btn-primary');
 
-  const perms = ALL_PERMISSIONS.filter(k => document.getElementById('perm-' + k)?.checked);
-  const btn   = document.querySelector('#modal-add-manager .btn-primary');
-  btn.textContent = 'Creating...'; btn.disabled = true;
+  if (!name || !email) { showToast('Name and email are required', 'error'); return; }
+  if (!isEdit && !pass) { showToast('Password is required for new accounts', 'error'); return; }
+  if (!isEdit && pass.length < 8) { showToast('Password must be at least 8 characters', 'error'); return; }
+
+  btn.textContent = isEdit ? 'Saving...' : 'Creating...'; btn.disabled = true;
 
   try {
-    // Create auth user
-    const result = await sb.signUp(email, pass, { name, phone, role: 'manager', status: 'active', permissions: perms });
-    const userId = result?.user?.id || result?.id || result?.identities?.[0]?.user_id || null;
-    if (!userId) throw new Error('Could not get user ID from signup response');
+    if (isEdit) {
+      // ── EDIT MODE: only update profile, no new auth user ──────────
+      const patchBody = { name, phone, permissions: perms };
+      const patchRes = await fetch(SUPABASE_URL + '/rest/v1/profiles?email=eq.' + encodeURIComponent(email), {
+        method: 'PATCH',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SESSION.token, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        body: JSON.stringify(patchBody)
+      });
+      if (!patchRes.ok && patchRes.status !== 204) {
+        const t = await patchRes.text(); throw new Error('Update failed: ' + t);
+      }
+      // Update local cache
+      const m = MANAGERS.find(x => x.email === email);
+      if (m) { m.name = name; m.phone = phone; m.permissions = perms; }
+      showToast('Manager updated: ' + name);
 
-    // Insert profile
-    const profRes = await fetch(SUPABASE_URL + '/rest/v1/profiles', {
-      method: 'POST',
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SESSION.token, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates,return=minimal' },
-      body: JSON.stringify({ id: userId, email, name, phone, role: 'manager', status: 'active', permissions: perms })
-    });
-    if (!profRes.ok && profRes.status !== 204) {
-      const t = await profRes.text(); throw new Error('Profile insert failed: ' + t);
+    } else {
+      // ── CREATE MODE: signup + profile insert ───────────────────────
+      const logEl = document.getElementById('mgr-signup-log');
+      const log = msg => { console.log('[mgr]', msg); if (logEl) { logEl.style.display='block'; logEl.textContent += msg + '\n'; logEl.scrollTop = logEl.scrollHeight; } };
+      log('Signing up: ' + email);
+
+      const result = await sb.signUp(email, pass, { name, phone, role: 'manager', status: 'active', permissions: perms });
+      log('signUp response: ' + JSON.stringify(result).slice(0, 150));
+
+      // Extract userId from all possible response shapes
+      const userId = result?.user?.id
+        || result?.id
+        || result?.identities?.[0]?.user_id
+        || result?.data?.user?.id
+        || null;
+
+      log('userId: ' + userId);
+      if (!userId) {
+        log('ERROR: No userId. Full response: ' + JSON.stringify(result).slice(0, 300));
+        throw new Error('Could not get user ID. Check the log below for details.');
+      }
+
+      // Use user's own session token if available (bypasses RLS on INSERT)
+      const userToken = result?.session?.access_token || result?.access_token || SESSION.token;
+      log('Using token: ' + (result?.session?.access_token ? 'user session' : 'admin session'));
+
+      const profRes = await fetch(SUPABASE_URL + '/rest/v1/profiles', {
+        method: 'POST',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + userToken, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+        body: JSON.stringify({ id: userId, email, name, phone, role: 'manager', status: 'active', permissions: perms })
+      });
+      const profText = await profRes.text();
+      log('Profile insert: HTTP ' + profRes.status + ' ' + (profText || '(empty)'));
+
+      if (profRes.status !== 200 && profRes.status !== 201 && profRes.status !== 204) {
+        throw new Error('Profile insert failed (HTTP ' + profRes.status + '): ' + profText);
+      }
+      MANAGERS.push({ id: userId, email, name, phone, role: 'manager', status: 'active', permissions: perms });
+      showToast('Manager account created for ' + name);
     }
-    MANAGERS.push({ id: userId, email, name, phone, role: 'manager', status: 'active', permissions: perms });
-    renderManagers();
+
+    await renderManagers();
     closeModal('modal-add-manager');
-    showToast('Manager account created for ' + name);
+
   } catch(err) {
+    console.error('saveManager error:', err);
     showToast('Failed: ' + err.message, 'error');
   } finally {
-    btn.textContent = 'Create Manager Account'; btn.disabled = false;
+    btn.textContent = isEdit ? 'Save Changes' : 'Create Manager Account';
+    btn.disabled = false;
   }
 }
 
@@ -4494,8 +4555,20 @@ function editManager(email) {
   document.getElementById('mgr-email').value = m.email || '';
   document.getElementById('mgr-phone').value = m.phone || '';
   document.getElementById('mgr-pass').value  = '';
+  // Make email read-only and password optional in edit mode
+  const emailEl = document.getElementById('mgr-email');
+  const passEl  = document.getElementById('mgr-pass');
+  const passLbl = document.getElementById('mgr-pass-label');
+  if (emailEl) emailEl.readOnly = true;
+  if (passEl)  passEl.placeholder = 'Leave blank to keep unchanged';
+  if (passLbl) passLbl.textContent = 'Password (optional)';
+  // Update save button
+  const btn = document.querySelector('#modal-add-manager .btn-primary');
+  if (btn) btn.textContent = 'Save Changes';
+  // Set permissions checkboxes
   setAllPerms(false);
-  (m.permissions || []).forEach(k => { const el = document.getElementById('perm-' + k); if (el) el.checked = true; });
+  const perms = Array.isArray(m.permissions) ? m.permissions : (m.permissions || []);
+  perms.forEach(k => { const el = document.getElementById('perm-' + k); if (el) el.checked = true; });
   openModal('modal-add-manager');
 }
 
