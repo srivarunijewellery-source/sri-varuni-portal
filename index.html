@@ -4153,7 +4153,7 @@ function renderMyOrders(filter) {
       <td style="font-size:12px;color:var(--text-light);font-family:monospace;">${o.tracking||'—'}</td>
       <td>
         <button class="btn btn-outline btn-sm" onclick="viewOrder('${o.id}')">View</button>
-        <button class="btn btn-outline btn-sm" onclick="showInvoice('${o.id}')" style="margin-left:4px;">Invoice</button>
+        ${o.status!=='cancelled'?`<button class="btn btn-outline btn-sm" onclick="showInvoice('${o.id}')" style="margin-left:4px;">Invoice</button>`:''}
         ${o.status==='pending'?`<button class="btn btn-danger btn-sm" onclick="cancelOrder('${o.id}')" style="margin-left:4px;">Cancel</button>`:''}
       </td>
     </tr>
@@ -4214,7 +4214,7 @@ function renderAdminOrders() {
       <td style="display:flex;gap:4px;flex-wrap:wrap;">
         <button class="btn btn-outline btn-sm" onclick="viewOrder('${o.id}')">View</button>
         <button class="btn btn-outline btn-sm" onclick="openEditOrder('${o.id}')">Edit</button>
-        <button class="btn btn-outline btn-sm" onclick="showInvoice('${o.id}')">Invoice</button>
+        ${o.status!=='cancelled'?`<button class="btn btn-outline btn-sm" onclick="showInvoice('${o.id}')">Invoice</button>`:''}
       </td>
     </tr>
   `).join('') || '<tr><td colspan="8"><div class="empty-state" style="padding:24px;"><p>No orders yet.</p></div></td></tr>';
