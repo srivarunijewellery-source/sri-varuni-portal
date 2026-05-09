@@ -1432,6 +1432,16 @@
 
         <!-- Step 1: Product (multi-item cart) -->
         <div id="order-step-1">
+          <!-- Admin/Manager: place order on behalf of reseller -->
+          <div id="order-behalf-section" style="display:none;background:linear-gradient(135deg,#faf8fc,#f0eaf7);border:1.5px solid var(--border);border-radius:10px;padding:16px 20px;margin-bottom:16px;">
+            <div style="font-size:12px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--text-light);margin-bottom:10px;">📋 Placing Order On Behalf Of</div>
+            <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+              <select id="behalf-reseller-select" onchange="onBehalfResellerChanged()" style="flex:1;min-width:220px;padding:10px 14px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;color:var(--text-dark);background:#fff;">
+                <option value="">— Select Reseller (optional) —</option>
+              </select>
+              <div id="behalf-reseller-info" style="font-size:12px;color:var(--text-light);"></div>
+            </div>
+          </div>
           <div class="card">
             <div class="card-header">
               <h3 class="card-title">Add Products to Order</h3>
@@ -2817,6 +2827,7 @@ function showPage(name) {
     window_placingOrder = false;
     orderCart = [];
     uploadedScreenshots = [];
+    initBehalfSelector();
     renderScreenshotGrid();
     renderCart();
     shipToSelfOn = false;
@@ -3142,7 +3153,7 @@ async function loadResellers() {
     const rows = await sb.get('profiles', 'role=eq.reseller&select=*&order=created_at.desc', SESSION && SESSION.token);
     console.log('loadResellers fetched:', rows ? rows.length : 0, 'resellers', rows ? rows.map(r=>r.email+'/'+r.status).join(', ') : '');
     RESELLERS = rows.map(r => ({
-      name: r.name, business: r.business, phone: r.phone,
+      id: r.id, name: r.name, business: r.business, phone: r.phone,
       city: r.city, email: r.email, status: r.status || 'pending',
       orders: ORDERS.filter(o => o.resellerEmail === r.email).length
     }));
@@ -3410,6 +3421,34 @@ function goToStep(step) {
 }
 
 // ── Place order ───────────────────────────────────────────────────────────────
+// ── PLACE ORDER ON BEHALF ─────────────────────────────────────
+let orderBehalfReseller = null; // null = placing as self
+
+function initBehalfSelector() {
+  const section = document.getElementById('order-behalf-section');
+  const sel     = document.getElementById('behalf-reseller-select');
+  if (!section || !sel) return;
+  const isAdminOrMgr = currentUser && (currentUser.role === 'admin' || currentUser.role === 'manager');
+  section.style.display = isAdminOrMgr ? 'block' : 'none';
+  if (!isAdminOrMgr) { orderBehalfReseller = null; return; }
+  // Populate dropdown with active resellers
+  const activeResellers = RESELLERS.filter(r => r.status === 'active');
+  sel.innerHTML = '<option value="">— Select Reseller (or leave blank for manual entry) —</option>' +
+    activeResellers.map(r => `<option value="${r.email}">${r.name || r.email} — ${r.business || ''} (${r.city || ''})</option>`).join('');
+  orderBehalfReseller = null;
+  document.getElementById('behalf-reseller-info').textContent = '';
+}
+
+function onBehalfResellerChanged() {
+  const sel   = document.getElementById('behalf-reseller-select');
+  const info  = document.getElementById('behalf-reseller-info');
+  const email = sel.value;
+  if (!email) { orderBehalfReseller = null; if (info) info.textContent = ''; return; }
+  const r = RESELLERS.find(x => x.email === email);
+  orderBehalfReseller = r || { email };
+  if (info) info.textContent = r ? `${r.phone || ''} · ${r.city || ''}` : '';
+}
+
 async function placeOrder() {
   if (window_placingOrder) { showToast('Already placing — please wait'); return; }
   window_placingOrder = true;
@@ -3452,9 +3491,11 @@ async function placeOrder() {
     const fullyCovered = payable === 0 && used > 0;
 
     const body = {
-      reseller_id:      SESSION.userId,
-      reseller_name:    currentUser.name     || '',
-      reseller_email:   currentUser.email    || '',
+      reseller_id:      orderBehalfReseller
+                          ? (RESELLERS.find(r=>r.email===orderBehalfReseller.email)?.id || SESSION.userId)
+                          : SESSION.userId,
+      reseller_name:    orderBehalfReseller ? (orderBehalfReseller.name  || orderBehalfReseller.email) : (currentUser.name  || ''),
+      reseller_email:   orderBehalfReseller ? orderBehalfReseller.email                                 : (currentUser.email || ''),
       customer_name:    (document.getElementById('cust-name')?.value    || '').trim(),
       customer_phone:   (document.getElementById('cust-phone')?.value   || '').trim(),
       customer_address: (document.getElementById('cust-address')?.value || '').trim(),
@@ -3556,6 +3597,7 @@ async function cancelOrder(orderId) {
 }
 
 async function markDelivered(orderId) {
+  if (!hasPermission('mark_delivered')) { showToast('You don\'t have permission to mark orders as delivered', 'error'); return; }
   const o = ORDERS.find(x => x.id === orderId);
   if (!o) return;
   if (o.status !== 'shipped') { showToast('Only shipped orders can be marked delivered', 'error'); return; }
@@ -3676,6 +3718,7 @@ function viewOrder(orderId) {
 }
 
 function openTracking(orderId) {
+  if (!hasPermission('add_tracking')) { showToast('You don\'t have permission to add tracking', 'error'); return; }
   currentTrackingOrderId = orderId;
   document.getElementById('tracking-eta').value = '';
   document.getElementById('tracking-number').value = '';
@@ -3722,6 +3765,7 @@ function confirmVerifyPayment(orderId) {
 }
 
 async function verifyPayment(orderId) {
+  if (!hasPermission('verify_payments')) { showToast('You don\'t have permission to verify payments', 'error'); return; }
   const o = ORDERS.find(x => x.id === orderId);
   if (!o) return;
   try {
@@ -3802,6 +3846,7 @@ async function addReseller() {
 }
 
 function openEditOrder(orderId) {
+  if (!hasPermission('edit_orders')) { showToast('You don\'t have permission to edit orders', 'error'); return; }
   const o = ORDERS.find(x => x.id === orderId);
   if (!o) return;
   document.getElementById('edit-order-id').value = orderId;
@@ -4169,6 +4214,7 @@ function filterResellers(filter, el) {
 }
 
 async function blockReseller(email) {
+  if (!hasPermission('block_resellers')) { showToast('You don\'t have permission to block resellers', 'error'); return; }
   if (!confirm('Block reseller ' + email + '? They will not be able to log in.')) return;
   try {
     await sb.patch('profiles', 'email=eq.' + email, { status: 'suspended' }, SESSION.token);
@@ -4180,6 +4226,7 @@ async function blockReseller(email) {
 }
 
 async function approveReseller(email) {
+  if (!hasPermission('approve_resellers')) { showToast('You don\'t have permission to approve resellers', 'error'); return; }
   try {
     await sb.patch('profiles', 'email=eq.' + email, { status: 'active' }, SESSION.token);
     const r = RESELLERS.find(x => x.email === email);
@@ -4190,6 +4237,7 @@ async function approveReseller(email) {
 }
 
 async function rejectReseller(email) {
+  if (!hasPermission('approve_resellers')) { showToast('You don\'t have permission to reject resellers', 'error'); return; }
   if (!confirm('Reject reseller request for ' + email + '?')) return;
   try {
     await sb.patch('profiles', 'email=eq.' + email, { status: 'suspended' }, SESSION.token);
@@ -4230,6 +4278,7 @@ function setCreditMode(mode) {
 }
 
 async function openCreditModal(email) {
+  if (!hasPermission('issue_credits') && !hasPermission('deduct_credits')) { showToast('You don\'t have permission to manage credits', 'error'); return; }
   currentCreditReseller = RESELLERS.find(r => r.email === email);
   if (!currentCreditReseller) return;
   document.getElementById('credit-reseller-name').textContent = currentCreditReseller.name || email;
@@ -4253,6 +4302,7 @@ async function openCreditModal(email) {
 function openIssueCredit(email) { openCreditModal(email); }
 
 async function reinstateReseller(email) {
+  if (!hasPermission('block_resellers')) { showToast('You don\'t have permission to reinstate resellers', 'error'); return; }
   if (!confirm('Reinstate ' + email + '? They will be able to log in again.')) return;
   try {
     await sb.patch('profiles', 'email=eq.' + email, { status: 'active' }, SESSION.token);
@@ -4267,6 +4317,8 @@ async function saveCredit() {
   const amount = parseInt(document.getElementById('credit-amount').value);
   const note   = document.getElementById('credit-note').value.trim();
   const mode = document.getElementById('credit-mode').value;
+  const neededPerm = mode === 'deduct' ? 'deduct_credits' : 'issue_credits';
+  if (!hasPermission(neededPerm)) { showToast('You don\'t have permission to ' + (mode === 'deduct' ? 'deduct' : 'issue') + ' credits', 'error'); return; }
   const finalAmount = mode === 'deduct' ? -Math.abs(amount) : Math.abs(amount);
   if (!amount || amount === 0) { showToast('Enter a valid amount', 'error'); return; }
   if (!currentCreditReseller) return;
