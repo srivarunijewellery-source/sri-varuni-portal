@@ -1658,7 +1658,7 @@
               </div>
               <div style="display:flex; gap:12px;">
                 <button class="btn btn-outline" onclick="goToStep(3)">← Back</button>
-                <button class="btn btn-primary" style="background:linear-gradient(135deg,#2d7a4f,#1a5c38); width:auto; padding:12px 32px;" onclick="placeOrder()">✓ Place Order</button>
+                <button class="btn btn-primary" id="place-order-btn" style="background:linear-gradient(135deg,#2d7a4f,#1a5c38); width:auto; padding:12px 32px;" onclick="this.disabled=true;this.textContent='Placing...';placeOrder()">✓ Place Order</button>
               </div>
             </div>
           </div>
@@ -3535,8 +3535,8 @@ async function placeOrder() {
   const errBox = document.getElementById('order-error-box');
   if (errBox) errBox.style.display = 'none';
 
-  const btn = document.querySelector('#order-step-4 .btn-primary');
-  if (btn) { btn.textContent = 'Placing...'; btn.disabled = true; }
+  const btn = document.getElementById('place-order-btn');
+  // btn already disabled by onclick handler
 
   try {
     if (!SESSION || !SESSION.token) throw new Error('Not logged in — please refresh and log in again');
@@ -3672,7 +3672,8 @@ async function placeOrder() {
     showOrderError(msg);
   } finally {
     window_placingOrder = false;
-    if (btn) { btn.textContent = '✓ Place Order'; btn.disabled = false; }
+    const resetBtn = document.getElementById('place-order-btn');
+    if (resetBtn) { resetBtn.textContent = '✓ Place Order'; resetBtn.disabled = false; }
   }
 }
 
