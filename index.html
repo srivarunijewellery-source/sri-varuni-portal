@@ -4349,8 +4349,8 @@ async function saveCredit() {
   const finalAmount = mode === 'deduct' ? -Math.abs(amount) : Math.abs(amount);
   if (!amount || amount === 0) { showToast('Enter a valid amount', 'error'); return; }
   if (!currentCreditReseller) return;
-  const btn = document.querySelector('#modal-credit .btn-primary');
-  btn.textContent = 'Issuing...'; btn.disabled = true;
+  const btn = document.getElementById('credit-save-btn');
+  if (btn) { btn.textContent = 'Saving...'; btn.disabled = true; }
   try {
     console.log('saveCredit: looking up profile for', currentCreditReseller.email);
     // Get reseller profile
