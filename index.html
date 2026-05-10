@@ -1531,8 +1531,8 @@
                   <div style="width:18px;height:18px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:transform .2s;box-shadow:0 1px 4px rgba(0,0,0,.2);" id="ship-self-knob"></div>
                 </div>
                 <div>
-                  <div style="font-size:13px;font-weight:600;color:var(--td);">Ship to my address</div>
-                  <div style="font-size:11px;color:var(--tl);margin-top:1px;">Auto-fill with your registered address from Profile</div>
+                  <div style="font-size:13px;font-weight:600;color:var(--td);" id="ship-self-label">Ship to my address</div>
+                  <div style="font-size:11px;color:var(--tl);margin-top:1px;" id="ship-self-sublabel">Auto-fill with your registered address from Profile</div>
                 </div>
               </div>
               <div class="form-row">
@@ -1587,7 +1587,7 @@
                 <div style="background:linear-gradient(135deg,#e8f5ee,#d1fae5);border:1.5px solid #6ee7b7;border-radius:12px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
                   <div>
                     <div style="font-size:13px;font-weight:600;color:#065f46;">Available Credits: <span id="credit-avail-amount" style="font-family:monospace;">₹0</span></div>
-                    <div style="font-size:11px;color:#047857;margin-top:2px;">Credits will be deducted from your balance and applied to this order</div>
+                    <div style="font-size:11px;color:#047857;margin-top:2px;" id="credit-apply-desc">Credits will be deducted from your balance and applied to this order</div>
                   </div>
                   <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
                     <span style="font-size:12px;color:#065f46;font-weight:600;" id="credit-apply-label">Apply</span>
@@ -3294,19 +3294,26 @@ function toggleShipToSelf() {
   if (shipToSelfOn) {
     if (toggle) toggle.style.background = 'var(--ok)';
     if (knob)   knob.style.transform    = 'translateX(18px)';
-    const u = currentUserProfile || {};
-    ['name','phone','address','city','state','pin'].forEach(f => {
-      const el = document.getElementById('cust-' + f); if (el) el.value = u[f] || '';
-    });
-    showToast(u.address ? 'Address auto-filled' : 'Add your address in My Profile first', u.address ? 'success' : 'error');
+    const isAdminBehalf = orderBehalfReseller && (currentUser?.role === 'admin' || currentUser?.role === 'manager');
+    const u = isAdminBehalf
+      ? (RESELLERS.find(r => r.email === orderBehalfReseller.email) || {})
+      : (currentUserProfile || {});
+    document.getElementById('cust-name').value    = u.name    || '';
+    document.getElementById('cust-phone').value   = u.phone   || '';
+    document.getElementById('cust-address').value = u.address || '';
+    document.getElementById('cust-city').value    = u.city    || '';
+    document.getElementById('cust-state').value   = u.state   || '';
+    document.getElementById('cust-pin').value     = u.pin     || '';
+    if (!u.address) showToast('No address on file — fill in manually', 'error');
+    else showToast('Address auto-filled from ' + (isAdminBehalf ? (orderBehalfReseller.email) : 'your profile'));
   } else {
     if (toggle) toggle.style.background = 'var(--border)';
     if (knob)   knob.style.transform    = 'translateX(0)';
-    ['cust-name','cust-phone','cust-address','cust-city','cust-state','cust-pin'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    ['cust-name','cust-phone','cust-address','cust-city','cust-state','cust-pin']
+      .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   }
 }
 
-// ── Credit toggle ─────────────────────────────────────────────────────────────
 function toggleApplyCredit() {
   applyCreditToOrder = !applyCreditToOrder;
   const toggle = document.getElementById('credit-apply-toggle');
@@ -3451,14 +3458,60 @@ function initBehalfSelector() {
   document.getElementById('behalf-reseller-info').textContent = '';
 }
 
-function onBehalfResellerChanged() {
+async function onBehalfResellerChanged() {
   const sel   = document.getElementById('behalf-reseller-select');
   const info  = document.getElementById('behalf-reseller-info');
   const email = sel.value;
-  if (!email) { orderBehalfReseller = null; if (info) info.textContent = ''; return; }
+
+  // Update ship-to label
+  const shipLabel    = document.getElementById('ship-self-label');
+  const shipSublabel = document.getElementById('ship-self-sublabel');
+
+  if (!email) {
+    orderBehalfReseller = null;
+    if (info) info.textContent = '';
+    if (shipLabel)    shipLabel.textContent    = 'Ship to my address';
+    if (shipSublabel) shipSublabel.textContent = 'Auto-fill with your registered address from Profile';
+    // Reset credits back to logged-in user's balance
+    resellerCreditBalance = 0;
+    const cs = document.getElementById('credit-apply-section');
+    if (cs) cs.style.display = 'none';
+    return;
+  }
+
   const r = RESELLERS.find(x => x.email === email);
   orderBehalfReseller = r || { email };
-  if (info) info.textContent = r ? `${r.phone || ''} · ${r.city || ''}` : '';
+  if (info) info.textContent = r ? (r.phone || '') + (r.city ? ' · ' + r.city : '') : '';
+
+  // Update ship-to label for reseller
+  if (shipLabel)    shipLabel.textContent    = 'Ship to reseller\'s address';
+  if (shipSublabel) shipSublabel.textContent = 'Auto-fill with ' + (r?.name || email) + '\'s registered address';
+
+  // Load selected reseller's credit balance
+  if (r && r.id) {
+    try {
+      const rows = await sb.get('credits', 'reseller_id=eq.' + r.id + '&select=amount', SESSION.token);
+      resellerCreditBalance = rows ? rows.reduce((s, x) => s + (x.amount || 0), 0) : 0;
+      console.log('Behalf reseller credit balance:', resellerCreditBalance);
+    } catch(e) {
+      console.warn('Could not load reseller credits:', e.message);
+      resellerCreditBalance = 0;
+    }
+  } else {
+    resellerCreditBalance = 0;
+  }
+
+  // Show/hide credit section based on balance
+  const cs = document.getElementById('credit-apply-section');
+  if (cs) cs.style.display = resellerCreditBalance > 0 ? 'block' : 'none';
+  if (resellerCreditBalance > 0) {
+    const ca   = document.getElementById('credit-avail-amount');
+    const cm   = document.getElementById('credit-apply-max');
+    const desc = document.getElementById('credit-apply-desc');
+    if (ca)   ca.textContent   = '₹' + resellerCreditBalance.toLocaleString();
+    if (cm)   cm.textContent   = resellerCreditBalance.toLocaleString();
+    if (desc) desc.textContent = 'Credits from ' + (r?.name || email) + '\'s balance — will be deducted on order';
+  }
 }
 
 async function placeOrder() {
