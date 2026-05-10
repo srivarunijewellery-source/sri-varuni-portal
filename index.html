@@ -2640,6 +2640,7 @@
         ✓ Credits will be added to the reseller's balance.
       </div>
     </div>
+    <div id="credit-error-box" style="display:none;background:#fee2e2;border:1px solid #fca5a5;border-radius:8px;padding:10px 14px;margin:0 20px 12px;font-size:12px;color:#9b1c1c;word-break:break-all;"></div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('modal-credit')">Cancel</button>
       <button class="btn btn-primary" id="credit-save-btn" onclick="saveCredit()">Issue Credit</button>
@@ -3524,6 +3525,18 @@ async function placeOrder() {
     };
 
     console.log('Posting order:', JSON.stringify({...body, screenshot_url: '[omitted]'}));
+    console.log('placeOrder body reseller_id:', body.reseller_id, 'SESSION.userId:', SESSION.userId, 'behalf:', orderBehalfReseller?.email || 'none');
+    if (orderBehalfReseller) {
+      console.log('Behalf reseller:', orderBehalfReseller.email, 'resolved id:', body.reseller_id);
+      if (!body.reseller_id || body.reseller_id === SESSION.userId) {
+        console.warn('WARNING: reseller_id fell back to SESSION.userId — check RESELLERS array has id field');
+        // Try fetching reseller UUID directly
+        try {
+          const rp = await sb.get('profiles', 'email=eq.' + encodeURIComponent(orderBehalfReseller.email) + '&select=id', SESSION.token);
+          if (rp && rp[0]) { body.reseller_id = rp[0].id; console.log('Fetched reseller UUID:', body.reseller_id); }
+        } catch(e) { console.warn('Could not fetch reseller UUID:', e.message); }
+      }
+    }
 
     // Direct fetch for maximum error visibility
     const postUrl = SUPABASE_URL + '/rest/v1/orders';
@@ -3547,8 +3560,9 @@ async function placeOrder() {
       try {
         const errJson = JSON.parse(postText);
         errMsg = errJson.message || errJson.error || errJson.hint || errMsg;
+        if (errJson.code === '42501') errMsg = 'RLS policy blocked insert. Run the orders_insert SQL fix in Supabase.';
       } catch(_) {}
-      throw new Error('Supabase error ' + postRes.status + ': ' + errMsg);
+      throw new Error('Order failed (HTTP ' + postRes.status + '): ' + errMsg);
     }
 
     console.log('Order saved successfully!');
@@ -4300,6 +4314,7 @@ async function openCreditModal(email) {
   const balEl = document.getElementById('credit-current-balance');
   if (balEl) { balEl.textContent = '...'; }
   setCreditMode('add');
+  const ceb = document.getElementById('credit-error-box'); if (ceb) { ceb.style.display='none'; ceb.textContent=''; }
   openModal('modal-credit');
   try {
     const profiles = await sb.get('profiles', 'email=eq.' + encodeURIComponent(email) + '&select=id', SESSION.token);
@@ -4343,7 +4358,7 @@ async function saveCredit() {
     console.log('saveCredit: profiles result:', JSON.stringify(rProfiles));
     if (!rProfiles || !rProfiles.length) throw new Error('Reseller profile not found. Run fix-credits-rls.sql in Supabase first.');
     const resellerId = rProfiles[0].id;
-    console.log('saveCredit: inserting credit for resellerId:', resellerId, 'amount:', amount);
+    console.log('saveCredit: inserting credit for resellerId:', resellerId, 'finalAmount:', finalAmount, 'mode:', mode);
     // Insert credit directly via fetch for full error visibility
     const creditUrl = SUPABASE_URL + '/rest/v1/credits';
     const creditRes = await fetch(creditUrl, {
@@ -4363,14 +4378,20 @@ async function saveCredit() {
     });
     const creditText = await creditRes.text();
     console.log('saveCredit: insert response', creditRes.status, creditText);
-    if (!creditRes.ok && creditRes.status !== 201) throw new Error('Credit insert failed: ' + creditText);
+    if (creditRes.status !== 200 && creditRes.status !== 201 && creditRes.status !== 204) {
+      let errDetail = creditText;
+      try { const j = JSON.parse(creditText); errDetail = j.message || j.error || j.hint || creditText; } catch(_) {}
+      throw new Error('Credit insert failed (HTTP ' + creditRes.status + '): ' + errDetail);
+    }
     closeModal('modal-credit');
-    showToast((finalAmount > 0 ? '₹' + finalAmount + ' credit issued to ' : '₹' + Math.abs(finalAmount) + ' deducted from ') + currentCreditReseller.name);
+    showToast((finalAmount > 0 ? '₹' + Math.abs(finalAmount) + ' credited to ' : '₹' + Math.abs(finalAmount) + ' deducted from ') + currentCreditReseller.name);
   } catch(err) { 
     console.error('saveCredit error:', err);
-    showToast('Failed: ' + err.message, 'error'); 
+    const errBox = document.getElementById('credit-error-box');
+    if (errBox) { errBox.textContent = '⚠ ' + (err.message || 'Unknown error'); errBox.style.display = 'block'; }
+    showToast('Failed: ' + err.message, 'error');
   }
-  finally { btn.textContent = 'Issue Credit'; btn.disabled = false; }
+  finally { if (btn) { btn.textContent = document.getElementById('credit-mode')?.value === 'deduct' ? 'Deduct Credit' : 'Issue Credit'; btn.disabled = false; } }
 }
 
 async function loadResellerCredits(resellerId) {
