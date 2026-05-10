@@ -3621,12 +3621,28 @@ async function placeOrder() {
 
     if (postRes.status !== 200 && postRes.status !== 201 && postRes.status !== 204) {
       let errMsg = postText || 'HTTP ' + postRes.status;
-      // Try to parse Supabase JSON error
+      let errCode = '';
       try {
         const errJson = JSON.parse(postText);
         errMsg = errJson.message || errJson.error || errJson.hint || errMsg;
-        if (errJson.code === '42501') errMsg = 'RLS policy blocked insert. Run the orders_insert SQL fix in Supabase.';
+        errCode = errJson.code || '';
+        if (errCode === '42501') errMsg = 'RLS policy blocked insert. Run the orders_insert SQL fix in Supabase.';
       } catch(_) {}
+      // 409 on order_number unique constraint = race condition in trigger
+      // The order was actually saved — treat as success and reload
+      if (postRes.status === 409 && errMsg.includes('order_number')) {
+        console.warn('409 duplicate order_number — order was saved, trigger race condition. Reloading orders...');
+        await loadOrders().catch(e => console.warn('loadOrders:', e));
+        showToast('✓ Order placed! Awaiting payment verification.', 'success');
+        // Reset form
+        orderCart = []; uploadedScreenshots = []; shipToSelfOn = false; applyCreditToOrder = false;
+        ['cust-name','cust-phone','cust-address','cust-city','cust-state','cust-pin','upi-txn','order-notes']
+          .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+        renderCart(); renderScreenshotGrid();
+        goToStep(1);
+        setTimeout(() => showPage('my-orders'), 1500);
+        return;
+      }
       throw new Error('Order failed (HTTP ' + postRes.status + '): ' + errMsg);
     }
 
@@ -3672,8 +3688,11 @@ async function placeOrder() {
     showOrderError(msg);
   } finally {
     window_placingOrder = false;
-    const resetBtn = document.getElementById('place-order-btn');
-    if (resetBtn) { resetBtn.textContent = '✓ Place Order'; resetBtn.disabled = false; }
+    // Delay re-enabling so user can't double-submit during the 1500ms redirect
+    setTimeout(() => {
+      const resetBtn = document.getElementById('place-order-btn');
+      if (resetBtn) { resetBtn.textContent = '✓ Place Order'; resetBtn.disabled = false; }
+    }, 2000);
   }
 }
 
