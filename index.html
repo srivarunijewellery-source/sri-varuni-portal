@@ -3456,6 +3456,13 @@ function initBehalfSelector() {
     activeResellers.map(r => `<option value="${r.email}">${r.name || r.email} — ${r.business || ''} (${r.city || ''})</option>`).join('');
   orderBehalfReseller = null;
   document.getElementById('behalf-reseller-info').textContent = '';
+  // Load own credits for admin/manager placing without selecting a reseller
+  if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'manager')) {
+    sb.get('credits', 'reseller_id=eq.' + SESSION.userId + '&select=amount', SESSION.token)
+      .then(rows => {
+        resellerCreditBalance = rows ? rows.reduce((s,r) => s + (r.amount||0), 0) : 0;
+      }).catch(() => { resellerCreditBalance = 0; });
+  }
 }
 
 async function onBehalfResellerChanged() {
@@ -3638,13 +3645,16 @@ async function placeOrder() {
     const badge = document.getElementById('nav-order-count');
     if (badge) badge.textContent = ORDERS.filter(o => o.resellerEmail === currentUser.email).length;
 
-    // Deduct credits
+    // Deduct credits — use the reseller's id when placing on behalf
     if (used > 0) {
-      const orderId = ORDERS.length ? ORDERS[0].id : '?';
+      const orderId      = ORDERS.length ? ORDERS[0].id : '?';
+      const creditTarget = orderBehalfReseller
+        ? (RESELLERS.find(r => r.email === orderBehalfReseller.email)?.id || body.reseller_id)
+        : SESSION.userId;
       fetch(SUPABASE_URL + '/rest/v1/credits', {
         method: 'POST',
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SESSION.token, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-        body: JSON.stringify({ reseller_id: SESSION.userId, amount: -used, note: 'Credit applied to order ' + orderId, issued_by: SESSION.userId })
+        body: JSON.stringify({ reseller_id: creditTarget, amount: -used, note: 'Credit applied to order ' + orderId, issued_by: SESSION.userId })
       }).catch(e => console.warn('Credit deduction failed:', e));
       resellerCreditBalance = Math.max(0, balance - used);
       const sc = document.getElementById('stat-credits');
