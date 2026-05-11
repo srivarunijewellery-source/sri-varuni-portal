@@ -60,7 +60,7 @@
   }
 
   /* ── SCREENS ── */
-  .screen { display: none; min-height: 100vh; }
+  .screen { display: none; min-height: 100dvh; background: #faf8fc; }
   .screen.active { display: flex; }
 
   /* ── AUTH SCREENS ── */
@@ -69,8 +69,12 @@
     align-items: center;
     justify-content: center;
     padding: 24px;
-    position: relative;
-    overflow: hidden;
+    position: fixed;
+    inset: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    z-index: 500;
+    min-height: 100dvh;
   }
 
   #screen-login::before, #screen-signup::before, #screen-forgot::before {
@@ -387,7 +391,8 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
+    min-height: 100dvh;
+    background: #faf8fc;
   }
 
   .topbar {
@@ -3015,6 +3020,8 @@ function showPage(name) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   const navItem = document.querySelector('.nav-item[data-page="' + name + '"]');
   if (navItem) navItem.classList.add('active');
+  // Always close sidebar on mobile when navigating
+  if (window.innerWidth <= 768) closeSidebar();
   const titles = {
     'dashboard': 'Dashboard', 'place-order': 'Place New Order',
     'my-orders': 'My Orders', 'invoices': 'My Invoices',
@@ -5094,6 +5101,17 @@ async function savePortalSettings() {
   } catch(err) { showToast('Failed: ' + err.message, 'error'); }
 }
 
+// Returns "Product Name" for 1 item or "3 items — Name1, Name2..." for multiple
+function productSummary(o) {
+  if (o.items && o.items.length > 0) {
+    const names = o.items.map(i => i.name || i.sl).filter(Boolean);
+    if (names.length === 1) return names[0];
+    const preview = names.slice(0, 2).join(', ');
+    return names.length + ' items — ' + preview + (names.length > 2 ? '…' : '');
+  }
+  return o.product || '—';
+}
+
 function renderDashboard() {
   const isManagerOrAdmin = currentUser?.role === 'admin' || currentUser?.role === 'manager';
   const myOrders = isManagerOrAdmin ? ORDERS : ORDERS.filter(o => o.resellerEmail === currentUser?.email);
@@ -5135,17 +5153,34 @@ function renderDashboard() {
 
   const tbody = document.getElementById('reseller-orders-tbody');
   if (!tbody) return;
-  tbody.innerHTML = myOrders.slice(0, 5).map(o => `
-    <tr>
+  const isMob = window.innerWidth <= 600;
+  tbody.innerHTML = myOrders.slice(0, 5).map(o => {
+    const prodSummary = productSummary(o);
+    if (isMob) {
+      return `<tr><td colspan="7" style="padding:0 0 10px 0;border:none;">
+        <div style="background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden;" onclick="viewOrder('${o.id}')">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid #f5f0f9;">
+            <span style="font-family:monospace;font-size:11px;color:var(--purple-light);">${o.id}</span>
+            ${statusBadge(o.status)}
+          </div>
+          <div style="padding:10px 14px;">
+            <div style="font-size:13px;font-weight:600;color:var(--text-dark);margin-bottom:3px;">${prodSummary}</div>
+            <div style="font-size:12px;color:var(--text-light);">${o.customer} · ${formatDate(o.date)}</div>
+            <div style="font-size:15px;font-weight:700;color:var(--purple-dark);margin-top:6px;">₹${o.price.toLocaleString()}</div>
+          </div>
+        </div>
+      </td></tr>`;
+    }
+    return `<tr>
       <td data-label="Order"><span style="font-family:monospace;font-size:12px;color:var(--purple-light);">${o.id}</span></td>
-      <td data-label="Product"><strong>${o.product}</strong></td>
+      <td data-label="Product"><strong>${prodSummary}</strong></td>
       <td data-label="Customer">${o.customer}</td>
       <td style="font-weight:600;">₹${o.price.toLocaleString()}</td>
       <td>${statusBadge(o.status)}</td>
       <td style="color:var(--text-light);font-size:12px;">${formatDate(o.date)}</td>
       <td><button class="btn btn-outline btn-sm" onclick="viewOrder('${o.id}')">View</button></td>
-    </tr>
-  `).join('') || '<tr><td colspan="7"><div class="empty-state"><p>No orders yet. Place your first order!</p></div></td></tr>';
+    </tr>`;
+  }).join('') || '<tr><td colspan="7"><div class="empty-state"><p>No orders yet. Place your first order!</p></div></td></tr>';
 }
 
 function renderMyOrders(filter) {
@@ -5154,10 +5189,35 @@ function renderMyOrders(filter) {
   if (filter !== 'all') orders = orders.filter(o => o.status === filter);
   const tbody = document.getElementById('my-orders-tbody');
   if (!tbody) return;
-  tbody.innerHTML = orders.map(o => `
-    <tr>
+  const isMobile2 = window.innerWidth <= 600;
+  tbody.innerHTML = orders.map(o => {
+    const prodSumm = productSummary(o);
+    if (isMobile2) {
+      return `<tr><td colspan="7" style="padding:0 0 10px 0;border:none;">
+        <div style="background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#faf8fc;border-bottom:1px solid #f0eaf7;" onclick="viewOrder('${o.id}')">
+            <span style="font-family:monospace;font-size:11px;color:var(--purple-light);font-weight:600;">${o.id}</span>
+            ${statusBadge(o.status)}
+          </div>
+          <div style="padding:10px 14px;" onclick="viewOrder('${o.id}')">
+            <div style="font-size:13px;font-weight:600;color:var(--text-dark);margin-bottom:3px;">${prodSumm}</div>
+            <div style="font-size:12px;color:var(--text-light);margin-bottom:6px;">${o.customer} · ${formatDate(o.date)}</div>
+            ${o.tracking ? '<div style="font-size:11px;color:var(--text-light);font-family:monospace;margin-bottom:4px;">📦 ' + o.tracking + '</div>' : ''}
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:16px;font-weight:700;color:var(--purple-dark);">₹${o.price.toLocaleString()}</span>
+              <div style="display:flex;gap:6px;">
+                ${o.status!=='cancelled'?`<button class="btn btn-outline btn-sm" onclick="event.stopPropagation();showInvoice('${o.id}')">Invoice</button>`:''}
+                ${o.status==='shipped'?`<button class="btn btn-success btn-sm" onclick="event.stopPropagation();markDelivered('${o.id}')">✓ Delivered</button>`:''}
+                ${o.status==='pending'?`<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();cancelOrder('${o.id}')">Cancel</button>`:''}
+              </div>
+            </div>
+          </div>
+        </div>
+      </td></tr>`;
+    }
+    return `<tr>
       <td data-label="Order"><span style="font-family:monospace;font-size:12px;color:var(--purple-light);">${o.id}</span></td>
-      <td data-label="Product">${o.product}</td>
+      <td data-label="Product">${prodSumm}</td>
       <td data-label="Customer">${o.customer}</td>
       <td style="font-weight:600;">₹${o.price.toLocaleString()}</td>
       <td>${statusBadge(o.status)}</td>
@@ -5168,7 +5228,8 @@ function renderMyOrders(filter) {
         ${o.status==='pending'?`<button class="btn btn-danger btn-sm" onclick="cancelOrder('${o.id}')" style="margin-left:4px;">Cancel</button>`:''}
       </td>
     </tr>
-  `).join('') || '<tr><td colspan="7"><div class="empty-state" style="padding:24px;"><p>No orders found.</p></div></td></tr>';
+    `;
+  }).join('') || '<tr><td colspan="7"><div class="empty-state" style="padding:24px;"><p>No orders found.</p></div></td></tr>';
 }
 
 function filterOrders(filter, el) {
@@ -5277,28 +5338,64 @@ function renderResellers() {
 function renderInvoices(role) {
   const isAdminView = role === 'admin' || role === 'manager';
   const orders = (isAdminView ? ORDERS : ORDERS.filter(o => o.resellerEmail === currentUser?.email)).filter(o => o.status !== 'cancelled');
+  const isMobile = window.innerWidth <= 600;
   const tbody = document.getElementById(role === 'reseller' ? 'invoices-tbody' : 'admin-invoices-tbody');
   if (!tbody) return;
-  tbody.innerHTML = orders.map(o => {
-    const gst = calcGST(o.price, 3);
-    const total = o.price + gst;
-    return `
-      <tr>
-        <td><span style="font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; font-size:12px; color:var(--purple-light);">${invoiceNo(o.id)}</span></td>
-        ${role !== 'reseller' ? `<td>${o.reseller}</td>` : ''}
-        <td><span style="font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; font-size:12px;">${o.id}</span></td>
-        <td data-label="Product">${o.product}</td>
-        <td>₹${o.price.toLocaleString()}</td>
-        <td>₹${gst}</td>
-        <td style="font-weight:700;">₹${total.toLocaleString()}</td>
-        <td style="color:var(--text-light); font-size:12px;">${formatDate(o.date)}</td>
-        <td>
-          <button class="btn btn-outline btn-sm" onclick="showInvoice('${o.id}')">View</button>
-          <button class="btn btn-gold btn-sm" onclick="showInvoice('${o.id}')" style="margin-left:4px;">⬇ PDF</button>
-        </td>
-      </tr>
-    `;
-  }).join('');
+
+  if (isMobile) {
+    // Mobile: render as cards, hide parent table thead
+    const parentTable = tbody.closest('table');
+    if (parentTable) parentTable.querySelector('thead')?.setAttribute('style','display:none');
+    tbody.innerHTML = orders.map(o => {
+      const gst   = calcGST(o.price, 3);
+      const total = o.price + gst;
+      return `<tr><td colspan="9" style="padding:0;border:none;">
+        <div style="background:#fff;border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden;">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--border);background:#faf8fc;">
+            <span style="font-family:monospace;font-size:12px;color:var(--purple-light);font-weight:600;">${invoiceNo(o.id)}</span>
+            <span style="font-size:11px;color:var(--text-light);">${formatDate(o.date)}</span>
+          </div>
+          <div style="padding:12px 14px;">
+            <div style="font-size:13px;font-weight:600;color:var(--text-dark);margin-bottom:6px;">${o.product}</div>
+            ${role !== 'reseller' ? `<div style="font-size:12px;color:var(--text-light);margin-bottom:6px;">Reseller: ${o.reseller}</div>` : ''}
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+              <div>
+                <span style="font-size:11px;color:var(--text-light);">Subtotal: ₹${o.price.toLocaleString()} + GST: ₹${gst}</span>
+                <div style="font-size:16px;font-weight:700;color:var(--purple-dark);">₹${total.toLocaleString()}</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px;">
+                <button class="btn btn-outline btn-sm" onclick="showInvoice('${o.id}')">View</button>
+                <button class="btn btn-gold btn-sm" onclick="showInvoice('${o.id}')">⬇ PDF</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </td></tr>`;
+    }).join('') || '<tr><td colspan="9"><div class="empty-state" style="padding:24px;"><p>No invoices yet.</p></div></td></tr>';
+  } else {
+    // Desktop: standard table rows
+    const parentTable = tbody.closest('table');
+    if (parentTable) parentTable.querySelector('thead')?.removeAttribute('style');
+    tbody.innerHTML = orders.map(o => {
+      const gst = calcGST(o.price, 3);
+      const total = o.price + gst;
+      return `
+        <tr>
+          <td><span style="font-family:monospace;font-size:12px;color:var(--purple-light);">${invoiceNo(o.id)}</span></td>
+          ${role !== 'reseller' ? `<td>${o.reseller}</td>` : ''}
+          <td><span style="font-family:monospace;font-size:12px;">${o.id}</span></td>
+          <td>${o.product}</td>
+          <td>₹${o.price.toLocaleString()}</td>
+          <td>₹${gst}</td>
+          <td style="font-weight:700;">₹${total.toLocaleString()}</td>
+          <td style="color:var(--text-light);font-size:12px;">${formatDate(o.date)}</td>
+          <td>
+            <button class="btn btn-outline btn-sm" onclick="showInvoice('${o.id}')">View</button>
+            <button class="btn btn-gold btn-sm" onclick="showInvoice('${o.id}')" style="margin-left:4px;">⬇ PDF</button>
+          </td>
+        </tr>`;
+    }).join('') || '<tr><td colspan="9"><div class="empty-state" style="padding:24px;"><p>No invoices yet.</p></div></td></tr>';
+  }
 }
 
 function renderAdminInvoices() { renderInvoices('admin'); }
