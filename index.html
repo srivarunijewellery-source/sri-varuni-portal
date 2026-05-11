@@ -8,7 +8,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Lora:wght@400;500;600&display=swap" rel="stylesheet">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#1a0f2e">
 <title>Sri Varuni Partner Portal</title>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -19,9 +23,7 @@
     --purple-light: #5a3578;
     --gold: #c9a96e;
     --gold-light: #e8c98a;
-    --gold-pale: #f5e6c8;
     --cream: #fdf6ec;
-    --white: #ffffff;
     --text-dark: #1a0f2e;
     --text-mid: #4a3560;
     --text-light: #8b7aa0;
@@ -33,26 +35,18 @@
     --danger: #9b1c1c;
     --danger-bg: #fee2e2;
     --shadow-sm: 0 1px 3px rgba(45,27,61,0.08);
-    --shadow-md: 0 4px 16px rgba(45,27,61,0.12);
     --shadow-lg: 0 12px 40px rgba(45,27,61,0.18);
     --radius: 12px;
     --radius-sm: 8px;
     /* Short aliases used in dynamic JS-generated HTML */
     --pd: #2d1b3d;
-    --pm: #3d2456;
     --pl: #5a3578;
     --goldl: #e8c98a;
     --td: #1a0f2e;
-    --tm: #4a3560;
     --tl: #8b7aa0;
     --ok: #2d7a4f;
     --okbg: #e8f5ee;
-    --warn: #b45309;
-    --warnbg: #fef3c7;
     --err: #9b1c1c;
-    --errbg: #fee2e2;
-    --r: 12px;
-    --rs: 8px;
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -628,36 +622,9 @@
   .upload-preview span { font-size: 13px; color: var(--success); font-weight: 500; }
 
   /* PRODUCT LOOKUP */
-  .product-preview {
-    display: none;
-    background: linear-gradient(135deg, #faf8fc, #f5f0f9);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 18px 20px;
-    margin-top: 14px;
-    align-items: center;
-    gap: 18px;
-  }
-
-  .product-preview.show { display: flex; }
-
-  .product-thumb {
-    width: 64px; height: 64px;
-    background: linear-gradient(135deg, var(--purple-light), var(--purple-dark));
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-
-  .product-thumb svg { width: 28px; height: 28px; color: var(--gold); }
 
   .product-info h4 { font-size: 15px; font-weight: 600; color: var(--text-dark); margin-bottom: 4px; }
   .product-info p { font-size: 12px; color: var(--text-light); }
-  .product-price { margin-left: auto; text-align: right; }
-  .product-price strong { font-size: 20px; color: var(--purple-dark); font-weight: 700; }
-  .product-price span { font-size: 11px; color: var(--text-light); display: block; }
 
   /* INVOICE */
   .invoice-preview {
@@ -796,8 +763,6 @@
   .tab { padding: 10px 18px; font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text-light); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
   .tab.active { color: var(--purple-dark); border-bottom-color: var(--purple-dark); font-weight: 600; }
   .tab:hover { color: var(--text-dark); }
-
-  .tab-pane { display: none; }
   .tab-pane.active { display: block; }
 
   /* MISC */
@@ -807,24 +772,13 @@
   .empty-state p { font-size: 13px; color: var(--text-light); }
 
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
 
   .text-sm { font-size: 12px; }
   .text-muted { color: var(--text-light); }
-  .text-gold { color: var(--gold); }
-  .text-purple { color: var(--purple-dark); }
   .fw-600 { font-weight: 600; }
-  .mt-4 { margin-top: 4px; }
   .mt-8 { margin-top: 8px; }
-  .mt-16 { margin-top: 16px; }
-  .mt-24 { margin-top: 24px; }
   .mb-16 { margin-bottom: 16px; }
   .mb-24 { margin-bottom: 24px; }
-  .flex { display: flex; }
-  .items-center { align-items: center; }
-  .gap-8 { gap: 8px; }
-  .gap-12 { gap: 12px; }
-  .justify-between { justify-content: space-between; }
   .w-full { width: 100%; }
 
   .info-row { display: flex; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--border); }
@@ -871,18 +825,6 @@
     gap: 8px;
   }
 
-  .order-card {
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 20px 24px;
-    margin-bottom: 14px;
-    transition: all 0.2s;
-    cursor: pointer;
-  }
-
-  .order-card:hover { box-shadow: var(--shadow-md); border-color: var(--purple-light); transform: translateY(-1px); }
-
   /* Scrollbar */
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
@@ -908,147 +850,310 @@
     transition: all 0.25s;
   }
 
+  /* ── SIDEBAR OVERLAY ─────────────────────────────────────────── */
   .sidebar-overlay {
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(26,15,46,0.55);
+    background: rgba(26,15,46,0.6);
     z-index: 99;
-    backdrop-filter: blur(2px);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    transition: opacity 0.25s;
   }
-  .sidebar-overlay.open { display: block; }
+  .sidebar-overlay.show { display: block; }
 
-  /* ── MOBILE RESPONSIVE ── */
+  /* ── BOTTOM NAV (mobile only) ─────────────────────────────────── */
+  .bottom-nav {
+    display: none;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 64px;
+    background: var(--purple-dark);
+    border-top: 1px solid rgba(255,255,255,0.08);
+    z-index: 90;
+    padding: 0 4px;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .bottom-nav-inner {
+    display: flex;
+    align-items: stretch;
+    height: 100%;
+    gap: 0;
+  }
+  .bnav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    cursor: pointer;
+    color: rgba(255,255,255,0.45);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding: 6px 2px;
+    border-radius: 10px;
+    transition: color 0.2s, background 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+  }
+  .bnav-item svg { width: 20px; height: 20px; flex-shrink: 0; }
+  .bnav-item.active { color: var(--gold); }
+  .bnav-item.active svg { stroke: var(--gold); }
+  .bnav-item .bnav-badge {
+    position: absolute;
+    top: 4px; right: calc(50% - 18px);
+    background: #e53e3e;
+    color: #fff;
+    font-size: 8px;
+    font-weight: 700;
+    min-width: 14px;
+    height: 14px;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 3px;
+  }
+
+  /* ── MOBILE RESPONSIVE 768px ──────────────────────────────────── */
   @media (max-width: 768px) {
+
     /* Hamburger visible */
     .hamburger { display: flex; }
 
-    /* Sidebar slides in/out */
+    /* Sidebar slides in */
     .sidebar {
       transform: translateX(-100%);
-      transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       width: 280px;
       z-index: 200;
     }
     .sidebar.open { transform: translateX(0); }
 
-    /* Main fills full width */
+    /* Main fills full width, add bottom padding for bottom nav */
     .main-content { margin-left: 0; }
+    .page-content { padding: 16px 14px 80px; }
 
-    /* Topbar padding */
-    .topbar { padding: 0 16px; }
-    .page-content { padding: 16px; }
+    /* Topbar */
+    .topbar { padding: 0 14px; height: 56px; }
+    .topbar-title { font-size: 16px; }
+    .admin-bar { padding: 8px 14px; font-size: 11px; }
 
-    /* Auth cards full width */
+    /* Auth */
     .auth-card { padding: 32px 22px; }
 
-    /* Stats grid: 2 cols on mobile */
+    /* Stats 2-col */
     .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
     .stat-value { font-size: 20px; }
     .stat-card { padding: 14px 16px; }
-    .stat-icon { width: 32px; height: 32px; margin-bottom: 10px; }
+    .stat-icon { width: 32px; height: 32px; margin-bottom: 8px; }
+    .stat-label { font-size: 11px; }
 
-    /* 2-col grids become 1-col */
-    .grid-2 { grid-template-columns: 1fr; gap: 14px; }
+    /* Grids */
+    .grid-2 { grid-template-columns: 1fr; gap: 12px; }
     .form-row { grid-template-columns: 1fr; gap: 0; }
-    
-    /* Order steps scroll */
-    .order-steps { gap: 0; }
-    .step { min-width: 70px; padding: 8px 10px; }
+
+    /* Order steps */
+    .order-steps { overflow-x: auto; -webkit-overflow-scrolling: touch; gap: 0; }
+    .step { min-width: 75px; padding: 10px 8px; }
     .step-label { font-size: 10px; }
-    
-    /* Sidebar logo smaller */
+    .step-num { width: 26px; height: 26px; }
+
+    /* Sidebar smaller */
     .sidebar-logo h2 { font-size: 15px; }
-    
-    /* Topbar tighter */
-    .topbar { padding: 0 12px; height: 56px; }
-    
-    /* Page content less padding */
-    .page-content { padding: 12px 14px; }
-    
-    /* Auth card padding */
-    .auth-card { padding: 28px 18px; }
-    
-    /* Profile banner smaller */
-    #page-my-profile > div:first-child { padding: 16px 18px; }
 
-    /* Order steps compact */
-    .order-steps { overflow-x: auto; }
-    .step { padding: 10px 12px; min-width: 80px; }
-    .step-label { font-size: 11px; }
+    /* Tables */
+    .table-wrap { -webkit-overflow-scrolling: touch; overflow-x: auto; }
+    thead th, tbody td { padding: 10px 10px; font-size: 12px; }
 
-    /* Tables scroll horizontally */
-    .table-wrap { -webkit-overflow-scrolling: touch; }
-    thead th, tbody td { padding: 10px 12px; font-size: 12px; }
+    /* Modal sheet from bottom */
+    .modal-overlay { padding: 0; align-items: flex-end; justify-content: center; }
+    .modal { border-radius: 24px 24px 0 0; max-height: 94vh; width: 100%; }
 
-    /* Modal full-screen on mobile */
-    .modal-overlay { padding: 0; align-items: flex-end; }
-    .modal {
-      border-radius: 20px 20px 0 0;
-      max-height: 92vh;
-      width: 100%;
-    }
+    /* Toast */
+    .toast { right: 12px; left: 12px; max-width: none; bottom: 76px; }
 
-    /* Toast bottom center */
-    .toast { right: 16px; left: 16px; max-width: none; bottom: 16px; }
-
-    /* Profile grid single col */
-    #page-my-profile > div:last-child { grid-template-columns: 1fr; }
-
-    /* Admin bar compact */
-    .admin-bar { padding: 8px 16px; font-size: 11px; }
-
-    /* Topbar title font size */
-    .topbar-title { font-size: 17px; }
-
-    /* Card body padding */
-    .card-body { padding: 16px; }
+    /* Cards */
     .card-header { padding: 14px 16px; }
-    .modal-body { padding: 20px 18px; }
-    .modal-footer { padding: 14px 18px; }
+    .card-body { padding: 16px; }
+    .card-title { font-size: 15px; }
+    .modal-body { padding: 20px 16px; }
+    .modal-footer { padding: 14px 16px; }
+
+    /* Profile */
+    #page-my-profile > div:first-child { padding: 16px 18px; }
+    #page-my-profile > div:last-child { grid-template-columns: 1fr !important; }
+
+    /* Info rows */
+    .info-row { flex-direction: column; gap: 2px; padding: 8px 0; }
+    .info-row label { min-width: unset; }
   }
 
+  /* ── MOBILE RESPONSIVE 480px ──────────────────────────────────── */
   @media (max-width: 480px) {
+
+    .page-content { padding: 12px 12px 80px; }
+    .topbar { height: 52px; padding: 0 12px; }
+    .topbar-title { font-size: 15px; }
+
+    /* Stats still 2-col */
     .stats-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
-    .stat-card { padding: 12px 14px; }
+    .stat-card { padding: 12px; }
     .stat-value { font-size: 18px; }
-    .stat-label { font-size: 11px; }
-    /* Order flow mobile */
+    .stat-icon { width: 28px; height: 28px; }
+
+    /* Steps tighter */
     .step { min-width: 60px; padding: 8px 6px; }
     .step-label { font-size: 9px; }
     .step-num { width: 22px; height: 22px; font-size: 10px; }
+
     /* Cards */
-    .card-body { padding: 14px 12px; }
     .card-header { padding: 12px 14px; }
+    .card-body { padding: 14px 12px; }
     .card-title { font-size: 14px; }
-    /* Tables: hide less critical cols on mobile */
-    .hide-mobile { display: none !important; }
-    /* Buttons wrap */
-    .btn { padding: 9px 14px; font-size: 12px; }
-    .btn-sm { padding: 6px 10px; font-size: 11px; }
-    /* Modal */
     .modal-body { padding: 16px 14px; }
     .modal-footer { padding: 12px 14px; gap: 8px; flex-wrap: wrap; }
     .modal-footer .btn { flex: 1; min-width: 120px; }
-    /* Info rows on mobile */
-    .info-row { flex-direction: column; gap: 2px; padding: 8px 0; }
-    .info-row label { min-width: unset; }
+
+    /* Buttons */
+    .btn { padding: 10px 16px; font-size: 12px; }
+    .btn-sm { padding: 7px 10px; font-size: 11px; }
+
+    /* Auth */
+    .auth-card { padding: 28px 18px; margin: 12px; }
+    .sidebar { width: 260px; }
+
+    /* Hide less critical table cols */
+    .col-hide-sm { display: none !important; }
+
+    /* Toast above bottom nav */
+    .toast { bottom: 72px; right: 10px; left: 10px; }
+
     /* Place order form */
     #page-place-order .card-body { padding: 14px 12px; }
-    /* Auth */
-    .auth-card { padding: 24px 16px; margin: 16px; }
-    /* Sidebar narrower */
-    .sidebar { width: 260px; }
-    /* Topbar */
-    .topbar { height: 52px; }
-    .topbar-title { font-size: 15px; }
-    /* Admin pending table — show fewer columns */
-    #admin-pending-tbody td:nth-child(3),
-    #admin-pending-tbody th:nth-child(3) { display: none; }
-    /* My orders — hide tracking col */
-    #my-orders-tbody td:nth-child(6),
-    #my-orders-tbody td:nth-child(6) { display: none; }
   }
+
+  /* ── SHOW BOTTOM NAV ON MOBILE ────────────────────────────────── */
+  @media (max-width: 768px) {
+    .bottom-nav { display: flex; flex-direction: column; }
+  }
+
+  /* ── TOUCH TARGET MINIMUM 44px ───────────────────────────────── */
+  @media (max-width: 768px) {
+    .btn { min-height: 44px; }
+    .nav-item { min-height: 44px; }
+    input, select, textarea { font-size: 16px !important; } /* prevent iOS zoom */
+  }
+
+  /* ── PULL-TO-REFRESH FEEL ─────────────────────────────────────── */
+  @media (max-width: 768px) {
+    .page-content { overscroll-behavior-y: contain; }
+  }
+
+  /* ── PWA SAFE AREAS (notch/home indicator) ────────────────────── */
+  @media (max-width: 768px) {
+    .topbar { padding-top: env(safe-area-inset-top); }
+    .bottom-nav { padding-bottom: env(safe-area-inset-bottom); }
+    .sidebar { padding-top: env(safe-area-inset-top); }
+  }
+
+
+  /* ── TABLE→CARD ON MOBILE ─────────────────────────────────── */
+  @media (max-width: 480px) {
+    /* Dashboard recent orders table */
+    #reseller-orders-tbody tr,
+    #my-orders-tbody tr {
+      display: block;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 10px;
+      padding: 10px 12px;
+      background: #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    }
+    #reseller-orders-tbody td,
+    #my-orders-tbody td {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 0;
+      border: none;
+      font-size: 12px;
+    }
+    #reseller-orders-tbody td:before,
+    #my-orders-tbody td:before {
+      content: attr(data-label);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      color: var(--text-light);
+      margin-right: 8px;
+      flex-shrink: 0;
+    }
+    /* Hide thead on mobile for these tables */
+    #reseller-orders-tbody ~ thead,
+    table:has(#reseller-orders-tbody) thead,
+    table:has(#my-orders-tbody) thead { display: none; }
+  }
+
+  /* ── SWIPE GESTURE FEEL ───────────────────────────────────── */
+  @media (max-width: 768px) {
+    .card { border-radius: 14px; }
+    .modal { border-radius: 24px 24px 0 0; }
+    .tab { border-radius: 8px; }
+    /* Larger touch targets for table action buttons */
+    tbody .btn-sm { padding: 8px 12px; font-size: 11px; }
+  }
+
+  /* ── AUTH SCREEN MOBILE ───────────────────────────────────── */
+  @media (max-width: 768px) {
+    #screen-login, #screen-signup, #screen-forgot, #screen-signup-success {
+      padding: 20px 16px;
+      padding-top: max(40px, env(safe-area-inset-top));
+    }
+  }
+
+  /* ── SMOOTH ACTIVE STATES ─────────────────────────────────── */
+  .bnav-item:active { background: rgba(255,255,255,0.08); transform: scale(0.95); }
+  .nav-item { transition: background 0.15s, color 0.15s; }
+  .btn { transition: background 0.15s, transform 0.1s, box-shadow 0.15s; }
+  .btn:active { transform: scale(0.97); }
+  .card { transition: box-shadow 0.2s; }
+
+  /* ── LOADING STATES ───────────────────────────────────────── */
+  @keyframes pulse-load {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  .loading { animation: pulse-load 1.5s ease-in-out infinite; }
+
+  /* ── SCROLLBAR SLIM ON MOBILE ─────────────────────────────── */
+  @media (max-width: 768px) {
+    ::-webkit-scrollbar { width: 3px; height: 3px; }
+  }
+
+
+  /* ── EXTRA SMALL: 320px (iPhone SE) ─────────────────────── */
+  @media (max-width: 320px) {
+    .auth-card { padding: 24px 14px; margin: 8px; }
+    .page-content { padding: 10px 10px 80px; }
+    .topbar-title { font-size: 13px; }
+    .stat-value { font-size: 16px; }
+    .stat-card { padding: 10px 12px; }
+    .bottom-nav { height: 58px; }
+    .bnav-item { font-size: 8px; }
+    .bnav-item svg { width: 18px; height: 18px; }
+    .btn { padding: 9px 12px; font-size: 11px; }
+    .card-header { padding: 10px 12px; }
+    .card-body { padding: 12px 10px; }
+    .step-label { display: none; }
+  }
+
 </style>
 </head>
 <body data-version="sv-portal-v3.0">
@@ -1160,7 +1265,13 @@
       <span style="font-size:12px;color:var(--warning);line-height:1.5;">Your account requires <strong>admin approval</strong> before you can login. You'll receive your login credentials once approved.</span>
     </div>
     <button class="btn btn-primary" onclick="handleSignup()">Submit Request</button>
-    <div id="signup-log" style="display:none;margin-top:14px;background:#1a0f2e;border-radius:8px;padding:12px 14px;font-family:monospace;font-size:11px;color:#c9a96e;max-height:150px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;"></div>
+    <div id="signup-log-wrap" style="display:none;margin-top:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <span style="font-size:11px;font-weight:600;color:var(--text-light);letter-spacing:0.8px;text-transform:uppercase;">Registration Log</span>
+        <button onclick="navigator.clipboard&&navigator.clipboard.writeText(document.getElementById('signup-log').textContent).then(()=>showToast('Log copied!'))" style="font-size:10px;padding:3px 8px;border:1px solid var(--border);border-radius:4px;background:#fff;cursor:pointer;color:var(--text-mid);">Copy</button>
+      </div>
+      <div id="signup-log" style="background:#1a0f2e;border-radius:8px;padding:12px 14px;font-family:monospace;font-size:11px;color:#c9a96e;max-height:200px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;"></div>
+    </div>
     <div class="auth-link">
       Already have an account? <a onclick="showScreen('login')">Sign In</a>
     </div>
@@ -1242,7 +1353,7 @@
   <!-- Mobile sidebar overlay -->
 <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
 
-<aside class="sidebar" id="main-sidebar">
+<aside class="sidebar" id="sidebar">
     <div class="sidebar-logo" style="cursor:default;">
       <div id="sb-logo-img" style="display:none;margin-bottom:10px;">
         <img id="sb-logo-src" src="" alt="Sri Varuni" style="max-height:40px;max-width:180px;object-fit:contain;filter:brightness(0) invert(1);">
@@ -1330,7 +1441,7 @@
     </nav>
 
     <div class="sidebar-footer">
-      <div class="nav-item" onclick="handleLogout()" style="color:rgba(255,100,100,0.7)">
+      <div class="nav-item" onclick="handleLogout()" style="color:rgba(255,100,100,0.7);min-height:48px;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         Sign Out
       </div>
@@ -2047,8 +2158,8 @@
                   <th>Name</th>
                   <th>Business</th>
                   <th>Phone</th>
-                  <th>City</th>
-                  <th>Orders</th>
+                  <th class="col-hide-sm">City</th>
+                  <th class="col-hide-sm">Orders</th>
                   <th>Status</th>
                   <th>Actions</th>
                 </tr>
@@ -2280,6 +2391,61 @@
           </div>
         </div>
       </div>
+
+
+<!-- ── BOTTOM NAV — RESELLER ────────────────────────────────── -->
+<nav class="bottom-nav" id="bottom-nav-reseller" style="display:none;">
+  <div class="bottom-nav-inner">
+    <div class="bnav-item active" onclick="showPage('dashboard');setActiveBottomNav(this)" data-page="dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Home
+    </div>
+    <div class="bnav-item" onclick="showPage('place-order');setActiveBottomNav(this)" data-page="place-order">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+      Order
+    </div>
+    <div class="bnav-item" onclick="showPage('my-orders');setActiveBottomNav(this)" data-page="my-orders">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Orders
+      <span class="bnav-badge" id="bnav-order-badge" style="display:none;"></span>
+    </div>
+    <div class="bnav-item" onclick="showPage('invoices');setActiveBottomNav(this)" data-page="invoices">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+      Invoices
+    </div>
+    <div class="bnav-item" onclick="showPage('my-profile');setActiveBottomNav(this)" data-page="my-profile">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Profile
+    </div>
+  </div>
+</nav>
+
+<!-- ── BOTTOM NAV — ADMIN ─────────────────────────────────────── -->
+<nav class="bottom-nav" id="bottom-nav-admin" style="display:none;">
+  <div class="bottom-nav-inner">
+    <div class="bnav-item active" onclick="showPage('admin-dashboard');setActiveBottomNav(this)" data-page="admin-dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Overview
+    </div>
+    <div class="bnav-item" onclick="showPage('admin-orders');setActiveBottomNav(this)" data-page="admin-orders">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Orders
+      <span class="bnav-badge" id="bnav-admin-badge" style="display:none;"></span>
+    </div>
+    <div class="bnav-item" onclick="showPage('place-order');setActiveBottomNav(this)" data-page="place-order">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      New
+    </div>
+    <div class="bnav-item" onclick="showPage('admin-resellers');setActiveBottomNav(this)" data-page="admin-resellers">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Resellers
+    </div>
+    <div class="bnav-item" onclick="showPage('admin-catalog');setActiveBottomNav(this)" data-page="admin-catalog">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+      Catalog
+    </div>
+  </div>
+</nav>
 
 </div><!-- /screen-app -->
 
@@ -2673,6 +2839,11 @@
 <div id="toast" class="toast success">
   <span id="toast-msg"></span>
 </div>
+<!-- Image zoom overlay -->
+<div id="img-zoom-overlay" onclick="this.style.display='none'" style="display:none;position:fixed;inset:0;background:rgba(26,15,46,0.88);z-index:10000;align-items:center;justify-content:center;cursor:zoom-out;backdrop-filter:blur(6px);">
+  <img id="img-zoom-img" src="" style="max-width:92vw;max-height:90vh;object-fit:contain;border-radius:12px;box-shadow:0 24px 80px rgba(0,0,0,0.6);">
+  <button onclick="document.getElementById('img-zoom-overlay').style.display='none'" style="position:absolute;top:20px;right:20px;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:24px;width:44px;height:44px;border-radius:50%;cursor:pointer;line-height:1;">×</button>
+</div>
 <script>
 /* === app.config.js === */
 const SUPABASE_URL = 'https://brtepaeqocjxmkinrwpg.supabase.co';
@@ -2742,7 +2913,7 @@ const sb = {
       body: blob
     });
     if (!r.ok) throw new Error(await r.text());
-    return SUPABASE_URL + '/storage/v1/object/public/' + bucket + '/' + path;
+    return SUPABASE_URL + '/storage/v1/object/' + bucket + '/' + path; // private path
   },
   async signIn(email, password) {
     const r = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=password', {
@@ -2773,6 +2944,16 @@ const sb = {
     });
     if (!r.ok) { const d = await r.json(); throw new Error(d.error_description || 'Failed'); }
     return true;
+  },
+  async getSignedUrl(bucket, path, token, expiresIn = 3600) {
+    const r = await fetch(SUPABASE_URL + '/storage/v1/object/sign/' + bucket + '/' + path, {
+      method: 'POST',
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ expiresIn })
+    });
+    if (!r.ok) throw new Error(await r.text());
+    const d = await r.json();
+    return SUPABASE_URL + '/storage/v1' + d.signedURL;
   },
   async signOut(token) {
     await fetch(SUPABASE_URL + '/auth/v1/logout', {
@@ -2810,6 +2991,21 @@ function showScreen(name) {
   const el = document.getElementById('screen-' + name);
   if (el) el.classList.add('active');
   else console.warn('Screen not found:', name);
+}
+
+function setActiveBottomNav(el) {
+  if (!el) return;
+  const nav = el.closest('.bottom-nav');
+  if (!nav) return;
+  nav.querySelectorAll('.bnav-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function syncBottomNav(pageName) {
+  // Sync bottom nav highlight when page changes from sidebar
+  document.querySelectorAll('.bnav-item').forEach(item => {
+    item.classList.toggle('active', item.dataset.page === pageName);
+  });
 }
 
 function showPage(name) {
@@ -2863,6 +3059,15 @@ function showPage(name) {
     if (notes) notes.value = '';
     goToStep(1);
   }
+}
+
+function showImgZoom(src) {
+  if (!src) return;
+  const ov = document.getElementById('img-zoom-overlay');
+  const im = document.getElementById('img-zoom-img');
+  if (!ov || !im) return;
+  im.src = src;
+  ov.style.display = 'flex';
 }
 
 function showToast(msg, type = 'success') {
@@ -3094,8 +3299,15 @@ async function enterApp() {
   // Config page is admin-only, not visible to managers
   const configNav = document.getElementById('nav-config-item');
   if (configNav) configNav.style.display = (role === 'admin') ? 'flex' : 'none';
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  // Bottom nav — show correct variant
+  const bnavReseller = document.getElementById('bottom-nav-reseller');
+  const bnavAdmin    = document.getElementById('bottom-nav-admin');
+  if (bnavReseller) bnavReseller.style.display = isAdmin ? 'none' : 'flex';
+  if (bnavAdmin)    bnavAdmin.style.display    = isAdmin ? 'flex' : 'none';
+  document.querySelectorAll('.page').forEach(p => { p.classList.remove('active'); });
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  syncBottomNav(name);
+  if (window.innerWidth <= 768) closeSidebar();
   document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('en-IN', { weekday:'short', day:'numeric', month:'long', year:'numeric' });
   showScreen('app');
   const pc = document.querySelector('.page-content');
@@ -3590,7 +3802,7 @@ async function placeOrder() {
     };
 
     console.log('Posting order:', JSON.stringify({...body, screenshot_url: '[omitted]'}));
-    console.log('placeOrder body reseller_id:', body.reseller_id, 'SESSION.userId:', SESSION.userId, 'behalf:', orderBehalfReseller?.email || 'none');
+    // debug log removed for security
     if (orderBehalfReseller) {
       console.log('Behalf reseller:', orderBehalfReseller.email, 'resolved id:', body.reseller_id);
       if (!body.reseller_id || body.reseller_id === SESSION.userId) {
@@ -3723,22 +3935,49 @@ async function markDelivered(orderId) {
 /* === app.order-detail.js === */
 function buildScreenshotSection(o) {
   if (!o.screenshotUrl) return '';
-  const urls = o.screenshotUrl.split(',').map(u => u.trim()).filter(Boolean);
-  if (!urls.length) return '';
-  const thumbs = urls.map((url, i) =>
-    '<div style="position:relative;cursor:zoom-in;display:inline-block;" onclick="openScreenshotViewer(\'' + url + '\', ' + i + ', ' + urls.length + ')">' +
-    '<img src="' + url + '" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:2px solid var(--border);display:block;" onerror="this.style.display=\'none\'">' +
-    '<div style="position:absolute;inset:0;background:rgba(0,0,0,.35);border-radius:8px;display:flex;align-items:center;justify-content:center;opacity:0;transition:.15s;" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=0">' +
-    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>' +
-    '</div></div>'
-  ).join('');
+  const parts = o.screenshotUrl.split(',').map(u => u.trim()).filter(Boolean);
+  if (!parts.length) return '';
+
+  // Separate storage paths from legacy data: URLs
+  const storagePaths = parts.filter(u => u.includes('/storage/v1/object/'));
+  const dataUrls     = parts.filter(u => u.startsWith('data:'));
+  const allUrls      = [...storagePaths, ...dataUrls];
+  if (!allUrls.length) return '';
+
+  const uid = 'ss' + Math.random().toString(36).slice(2,7);
+
+  // Load signed URLs asynchronously after render
+  if (storagePaths.length > 0) {
+    setTimeout(async () => {
+      const el = document.getElementById(uid);
+      if (!el || !SESSION) return;
+      try {
+        const signed = await Promise.all(storagePaths.map(async url => {
+          const m = url.match(/\/storage\/v1\/object\/([^\/]+)\/(.+)/);
+          if (!m) return url;
+          try { return await sb.getSignedUrl(m[1], m[2], SESSION.token); }
+          catch(_) { return url; }
+        }));
+        const imgs = [...signed, ...dataUrls];
+        el.innerHTML = imgs.map(u =>
+          '<a href="' + u + '" target="_blank" style="display:inline-block;margin:0 6px 6px 0;">' +
+          '<img src="' + u + '" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:2px solid #e8d5f0;display:block;">' +
+          '</a>'
+        ).join('');
+      } catch(e) { console.warn('Screenshot load failed:', e.message); }
+    }, 150);
+  }
+
+  const count = allUrls.length;
   return '<div style="margin-top:12px;">' +
-    '<div style="font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--tl);margin-bottom:8px;">Payment Screenshots (' + urls.length + ')</div>' +
-    '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;">' + thumbs + '</div>' +
-    '<a href="' + urls[0] + '" download target="_blank" style="font-size:12px;color:var(--pl);text-decoration:none;display:inline-flex;align-items:center;gap:5px;">' +
-    '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>' +
-    'Download screenshot' + (urls.length > 1 ? 's (' + urls.length + ')' : '') + '</a></div>';
+    '<div style="font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:#8b7aa0;margin-bottom:8px;">Payment Screenshots (' + count + ')</div>' +
+    '<div id="' + uid + '" style="display:flex;flex-wrap:wrap;min-height:72px;align-items:center;">' +
+    (dataUrls.length > 0
+      ? dataUrls.map(u => '<a href="' + u + '" target="_blank" style="display:inline-block;margin:0 6px 6px 0;"><img src="' + u + '" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:2px solid #e8d5f0;display:block;"></a>').join('')
+      : '<span style="font-size:12px;color:#8b7aa0;">Loading...</span>') +
+    '</div></div>';
 }
+
 
 function openScreenshotViewer(url, idx, total) {
   const overlay = document.getElementById('screenshot-viewer-overlay');
@@ -3879,8 +4118,11 @@ async function verifyPayment(orderId) {
     renderAdminPending();
     if (document.getElementById('page-admin-orders').classList.contains('active')) renderAdminOrders();
     showToast('Payment verified. Reseller notified!');
-    const badge = document.getElementById('admin-order-badge');
-    if (badge) badge.textContent = ORDERS.filter(o => ['pending','confirmed'].includes(o.status)).length;
+    const pendingOrderCount = ORDERS.filter(o => ['pending','confirmed'].includes(o.status)).length;
+  const badge = document.getElementById('admin-order-badge');
+  if (badge) badge.textContent = pendingOrderCount;
+  const bnavAdminBadge = document.getElementById('bnav-admin-badge');
+  if (bnavAdminBadge) { bnavAdminBadge.textContent = pendingOrderCount; bnavAdminBadge.style.display = pendingOrderCount > 0 ? 'flex' : 'none'; }
   } catch(err) { showToast('Failed: ' + err.message, 'error'); }
 }
 
@@ -3902,8 +4144,11 @@ async function saveTracking() {
     renderAdminPending();
     if (document.getElementById('page-admin-orders').classList.contains('active')) renderAdminOrders();
     showToast('Tracking added! Reseller notified via WhatsApp.');
-    const badge = document.getElementById('admin-order-badge');
-    if (badge) badge.textContent = ORDERS.filter(o => ['pending','confirmed'].includes(o.status)).length;
+    const pendingOrderCount = ORDERS.filter(o => ['pending','confirmed'].includes(o.status)).length;
+  const badge = document.getElementById('admin-order-badge');
+  if (badge) badge.textContent = pendingOrderCount;
+  const bnavAdminBadge = document.getElementById('bnav-admin-badge');
+  if (bnavAdminBadge) { bnavAdminBadge.textContent = pendingOrderCount; bnavAdminBadge.style.display = pendingOrderCount > 0 ? 'flex' : 'none'; }
   } catch(err) { showToast('Failed: ' + err.message, 'error'); }
 }
 
@@ -4870,6 +5115,9 @@ function renderDashboard() {
 
   const badge = document.getElementById('nav-order-count');
   if (badge) badge.textContent = total;
+  // Sync bottom nav badge
+  const bnavBadge = document.getElementById('bnav-order-badge');
+  if (bnavBadge) { bnavBadge.textContent = total; bnavBadge.style.display = total > 0 ? 'flex' : 'none'; }
 
   // Load credit balance — also store in resellerCreditBalance for use in order flow
   if (SESSION && SESSION.userId) {
@@ -4889,9 +5137,9 @@ function renderDashboard() {
   if (!tbody) return;
   tbody.innerHTML = myOrders.slice(0, 5).map(o => `
     <tr>
-      <td><span style="font-family:monospace;font-size:12px;color:var(--purple-light);">${o.id}</span></td>
-      <td><strong>${o.product}</strong></td>
-      <td>${o.customer}</td>
+      <td data-label="Order"><span style="font-family:monospace;font-size:12px;color:var(--purple-light);">${o.id}</span></td>
+      <td data-label="Product"><strong>${o.product}</strong></td>
+      <td data-label="Customer">${o.customer}</td>
       <td style="font-weight:600;">₹${o.price.toLocaleString()}</td>
       <td>${statusBadge(o.status)}</td>
       <td style="color:var(--text-light);font-size:12px;">${formatDate(o.date)}</td>
@@ -4908,9 +5156,9 @@ function renderMyOrders(filter) {
   if (!tbody) return;
   tbody.innerHTML = orders.map(o => `
     <tr>
-      <td><span style="font-family:monospace;font-size:12px;color:var(--purple-light);">${o.id}</span></td>
-      <td>${o.product}</td>
-      <td>${o.customer}</td>
+      <td data-label="Order"><span style="font-family:monospace;font-size:12px;color:var(--purple-light);">${o.id}</span></td>
+      <td data-label="Product">${o.product}</td>
+      <td data-label="Customer">${o.customer}</td>
       <td style="font-weight:600;">₹${o.price.toLocaleString()}</td>
       <td>${statusBadge(o.status)}</td>
       <td style="font-size:12px;color:var(--text-light);font-family:monospace;">${o.tracking||'—'}</td>
@@ -4950,9 +5198,9 @@ function renderAdminPending() {
   if (!tbody) return;
   tbody.innerHTML = pending.map(o => `
     <tr>
-      <td><span style="font-family:monospace;font-size:12px;color:var(--purple-light);">${o.id}</span></td>
+      <td data-label="Order"><span style="font-family:monospace;font-size:12px;color:var(--purple-light);">${o.id}</span></td>
       <td>${o.reseller||'—'}</td>
-      <td>${o.product}</td>
+      <td data-label="Product">${o.product}</td>
       <td style="font-weight:600;">₹${o.price.toLocaleString()}</td>
       <td>${statusBadge(o.status)}</td>
       <td>
@@ -4967,10 +5215,10 @@ function renderAdminOrders() {
   if (!tbody) return;
   tbody.innerHTML = ORDERS.map(o => `
     <tr>
-      <td><span style="font-family:monospace;font-size:12px;color:var(--purple-light);">${o.id}</span></td>
+      <td data-label="Order"><span style="font-family:monospace;font-size:12px;color:var(--purple-light);">${o.id}</span></td>
       <td>${o.reseller||'—'}</td>
-      <td>${o.product}</td>
-      <td>${o.customer}</td>
+      <td data-label="Product">${o.product}</td>
+      <td data-label="Customer">${o.customer}</td>
       <td style="font-weight:600;">₹${o.price.toLocaleString()}</td>
       <td>${statusBadge(o.status)}</td>
       <td style="color:var(--text-light);font-size:12px;">${o.date?formatDate(o.date):'—'}</td>
@@ -5039,7 +5287,7 @@ function renderInvoices(role) {
         <td><span style="font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; font-size:12px; color:var(--purple-light);">${invoiceNo(o.id)}</span></td>
         ${role !== 'reseller' ? `<td>${o.reseller}</td>` : ''}
         <td><span style="font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; font-size:12px;">${o.id}</span></td>
-        <td>${o.product}</td>
+        <td data-label="Product">${o.product}</td>
         <td>₹${o.price.toLocaleString()}</td>
         <td>₹${gst}</td>
         <td style="font-weight:700;">₹${total.toLocaleString()}</td>
