@@ -392,7 +392,14 @@
 
   .sidebar-footer {
     padding: 16px 12px;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
     border-top: 1px solid rgba(255,255,255,0.06);
+    margin-bottom: 0;
+  }
+  @media (max-width: 768px) {
+    .sidebar-footer {
+      padding-bottom: calc(24px + env(safe-area-inset-bottom));
+    }
   }
 
   /* MAIN CONTENT */
@@ -1198,6 +1205,65 @@
     .step-label { display: none; }
   }
 
+
+  /* ── ANDROID / CROSS-BROWSER COMPATIBILITY ─────────────────── */
+
+  /* Android Chrome — prevent text size adjustment */
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+  /* Android: use system font stack that includes Roboto */
+  body { font-family: 'Nunito Sans', 'Roboto', -apple-system, 'Noto Sans', Arial, sans-serif; }
+
+  /* Android Chrome bottom nav bar — use env() with fallback */
+  .bottom-nav {
+    padding-bottom: max(env(safe-area-inset-bottom), 8px);
+  }
+
+  /* Remove iOS-only properties that cause issues on Android */
+  input, select, textarea {
+    -webkit-appearance: none;
+    appearance: none;
+    border-radius: 8px; /* Android sometimes renders square */
+  }
+
+  /* Android tap color */
+  * { -webkit-tap-highlight-color: rgba(93, 63, 128, 0.1); }
+  .bnav-item { -webkit-tap-highlight-color: transparent; }
+
+  /* Android: backdrop-filter fallback */
+  @supports not (backdrop-filter: blur(6px)) {
+    .sidebar-overlay { background: rgba(26,15,46,0.85); }
+    #img-zoom-overlay { background: rgba(26,15,46,0.95); }
+    .bottom-nav { box-shadow: 0 -2px 20px rgba(0,0,0,0.3); }
+  }
+
+  /* Android Chrome address bar — use dvh */
+  .screen, body { min-height: 100dvh; }
+
+  /* Android: fix date input styling */
+  input[type="date"] {
+    -webkit-appearance: none;
+    appearance: none;
+    background: #fff;
+    color: var(--text-dark);
+    padding: 9px 12px;
+  }
+
+  /* Android Material ripple feel on buttons */
+  .btn { position: relative; overflow: hidden; }
+  .bnav-item { overflow: hidden; }
+
+  /* Fix Android flexbox gap */
+  .bottom-nav-inner { gap: 0; }
+
+  /* Android: prevent zoom on input focus (already have 16px but reinforce) */
+  @media screen and (-webkit-min-device-pixel-ratio: 0) {
+    select, textarea, input[type="text"], input[type="email"],
+    input[type="password"], input[type="tel"], input[type="number"] {
+      font-size: 16px !important;
+    }
+  }
+
 </style>
 </head>
 <body data-version="sv-portal-v3.0">
@@ -1227,7 +1293,6 @@
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
       <span id="login-alert-msg">Invalid email or password.</span>
     </div>
-    <div id="debug-panel" style="display:none;margin-bottom:12px;background:#1a0f2e;border-radius:8px;padding:12px;font-family:monospace;font-size:11px;color:#86efac;max-height:160px;overflow-y:auto;white-space:pre-wrap;"></div>
 
     <div class="form-group">
       <label>Email Address</label>
@@ -1591,6 +1656,15 @@
 
         <!-- Step 1: Product (multi-item cart) -->
         <div id="order-step-1">
+          <!-- Reseller: credit balance banner -->
+          <div id="order-credit-banner" style="display:none;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1.5px solid #86efac;border-radius:10px;padding:12px 16px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;">
+            <div>
+              <div style="font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#166534;">Available Credits</div>
+              <div id="order-credit-banner-amount" style="font-size:20px;font-weight:700;color:#166534;">₹0</div>
+            </div>
+            <div style="font-size:11px;color:#166534;text-align:right;">Will be applied<br>in payment step</div>
+          </div>
+
           <!-- Admin/Manager: place order on behalf of reseller -->
           <div id="order-behalf-section" style="display:none;background:linear-gradient(135deg,#faf8fc,#f0eaf7);border:1.5px solid var(--border);border-radius:10px;padding:16px 20px;margin-bottom:16px;">
             <div style="font-size:12px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--text-light);margin-bottom:10px;">📋 Placing Order On Behalf Of</div>
@@ -2007,6 +2081,18 @@
 
           </div>
         </div>
+
+        <!-- Credits & Transactions (resellers only) -->
+        <div class="card" id="prof-credits-section" style="margin-top:20px;display:none;">
+          <div class="card-header">
+            <h3 class="card-title">💳 Credits & Transactions</h3>
+            <div style="font-size:20px;font-weight:700;color:#059669;" id="prof-credit-balance">₹0</div>
+          </div>
+          <div id="prof-credits-list">
+            <div style="text-align:center;padding:32px;color:var(--text-light);">Loading...</div>
+          </div>
+        </div>
+
       </div>
 
 
@@ -2780,9 +2866,9 @@
       <p style="font-size:13px;color:var(--text-light);margin-bottom:18px;line-height:1.6;">
         Logo appears on the login screen and sidebar. Use a transparent PNG or white-on-transparent version for the sidebar. Recommended: 400×160px or wider.
       </p>
-      <!-- File input lives OUTSIDE the clickable area to avoid browser cancel issues -->
-      <input type="file" id="logo-file-input" accept="image/*,.svg" style="display:none;position:absolute;left:-9999px;" onchange="handleLogoUpload(this)">
-      <div id="logo-upload-area" style="border:2px dashed var(--border);border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:border-color .2s;" onclick="document.getElementById('logo-file-input').click()">
+      <!-- Label wrapping triggers file input reliably on all browsers/mobile -->
+      <label for="logo-file-input" style="display:block;border:2px dashed var(--border);border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:border-color .2s;" id="logo-upload-area">
+      <input type="file" id="logo-file-input" accept="image/*,.svg" style="display:none;" onchange="handleLogoUpload(this)">
         <div id="logo-empty-state" style="padding:28px;text-align:center;">
           <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--border)" stroke-width="1.5" style="display:block;margin:0 auto 10px;"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
           <p style="font-size:13px;color:var(--text-light);">Click to <strong style="color:var(--purple-light);">upload logo</strong></p>
@@ -3136,8 +3222,7 @@ function showPage(name) {
     // Reload catalog if PRODUCTS is empty (race condition fix)
     if (Object.keys(PRODUCTS).length === 0 && SESSION) {
       loadCatalog().then(() => {
-        console.log('Catalog reloaded for place-order, products:', Object.keys(PRODUCTS).length);
-      });
+          });
     }
     var toggle = document.getElementById('ship-self-toggle');
     var knob   = document.getElementById('ship-self-knob');
@@ -3262,23 +3347,14 @@ async function handleLogin() {
   const btn = document.querySelector('#screen-login .btn-primary');
   btn.textContent = 'Signing in...'; btn.disabled = true;
 
-  const dbg = document.getElementById('debug-panel');
-  function log(msg) {
-    console.log(msg);
-    if (dbg) { dbg.style.display='block'; dbg.textContent += msg + '\n'; dbg.scrollTop = dbg.scrollHeight; }
-  }
   try {
-    log('1. Attempting login to: ' + SUPABASE_URL);
     const data = await sb.signIn(email, pass);
-    log('2. Login OK, user: ' + data.user.id);
     saveSession(data);
     let profile = null;
     try {
-      log('3. Fetching profile...');
       const profiles = await sb.get('profiles', 'id=eq.' + data.user.id + '&select=*', data.access_token);
       profile = profiles && profiles[0] ? profiles[0] : null;
-      log('4. Profile: ' + (profile ? profile.role + '/' + profile.status : 'NOT FOUND'));
-    } catch(pe) { log('4. Profile fetch failed: ' + pe.message); }
+    } catch(pe) { console.warn('Profile fetch:', pe.message); }
 
     if (!profile) {
       profile = { id: data.user.id, email, name: email.split('@')[0], role: 'reseller', status: 'active' };
@@ -3301,8 +3377,6 @@ async function handleLogin() {
     enterApp();
   } catch(err) {
     let msg = err.message || 'Login failed.';
-    console.error('Full login error:', err);
-    if (dbg) { dbg.style.display='block'; dbg.textContent += 'ERROR: ' + JSON.stringify(err.message) + '\n'; }
     if (msg.includes('Invalid login') || msg.includes('invalid_grant')) msg = 'Incorrect email or password.';
     if (msg.includes('Email not confirmed')) msg = 'Please verify your email — check inbox.';
     if (msg.includes('fetch') || msg.toLowerCase().includes('failed to fetch')) msg = 'Cannot reach Supabase. Check URL/key.';
@@ -3486,7 +3560,6 @@ async function loadOrders() {
       query += '&reseller_id=eq.' + (SESSION && SESSION.userId);
     }
     const rows = await sb.get('orders', query, SESSION && SESSION.token);
-    console.log('loadOrders fetched', rows.length, 'orders');
     ORDERS = rows.map(r => ({
       id: r.order_number, _uuid: r.id,
       sl: r.items && r.items[0] ? r.items[0].sl : '',
@@ -3511,7 +3584,6 @@ async function loadResellers() {
   try {
     // Fetch ALL resellers regardless of status (admin needs to see pending too)
     const rows = await sb.get('profiles', 'role=eq.reseller&select=*&order=created_at.desc', SESSION && SESSION.token);
-    console.log('loadResellers fetched:', rows ? rows.length : 0, 'resellers', rows ? rows.map(r=>r.email+'/'+r.status).join(', ') : '');
     RESELLERS = rows.map(r => ({
       id: r.id, name: r.name, business: r.business, phone: r.phone,
       city: r.city, email: r.email, status: r.status || 'pending',
@@ -3560,7 +3632,7 @@ function renderCart() {
       </td>
       <td style="padding:10px 12px;border-bottom:1px solid #f0eaf7;font-family:monospace;font-size:11px;color:#5a3578;">${item.sl}</td>
       <td style="padding:10px 12px;border-bottom:1px solid #f0eaf7;">
-        <div style="font-size:13px;font-weight:600;color:#1a0f2e;">${item.name}</div>
+        <div style="font-size:13px;font-weight:600;color:#1a0f2e;cursor:pointer;" onclick="openProductDetail('${item.sl}')">${item.name} <span style="font-size:10px;color:var(--text-light);">🔍</span></div>
         <div style="font-size:11px;color:#8b7aa0;">${item.details||''}</div>
       </td>
       <td style="padding:10px 12px;border-bottom:1px solid #f0eaf7;text-align:center;">
@@ -3811,6 +3883,17 @@ function initBehalfSelector() {
         resellerCreditBalance = rows ? rows.reduce((s,r) => s + (r.amount||0), 0) : 0;
       }).catch(() => { resellerCreditBalance = 0; });
   }
+  // Show credit banner for resellers in step 1
+  const creditBanner = document.getElementById('order-credit-banner');
+  const creditBannerAmt = document.getElementById('order-credit-banner-amount');
+  if (currentUser && currentUser.role === 'reseller' && creditBanner) {
+    if (resellerCreditBalance > 0) {
+      creditBanner.style.display = 'flex';
+      if (creditBannerAmt) creditBannerAmt.textContent = '₹' + resellerCreditBalance.toLocaleString();
+    } else {
+      creditBanner.style.display = 'none';
+    }
+  }
 }
 
 async function onBehalfResellerChanged() {
@@ -3847,8 +3930,7 @@ async function onBehalfResellerChanged() {
     try {
       const rows = await sb.get('credits', 'reseller_id=eq.' + r.id + '&select=amount', SESSION.token);
       resellerCreditBalance = rows ? rows.reduce((s, x) => s + (x.amount || 0), 0) : 0;
-      console.log('Behalf reseller credit balance:', resellerCreditBalance);
-    } catch(e) {
+      } catch(e) {
       console.warn('Could not load reseller credits:', e.message);
       resellerCreditBalance = 0;
     }
@@ -4589,6 +4671,29 @@ function setProductImageUI(imgSrc) {
 }/* === app.profile.js === */
 function loadProfile() {
   if (!currentUserProfile) return;
+  // Load credits for resellers
+  const credSec = document.getElementById('prof-credits-section');
+  const credLst = document.getElementById('prof-credits-list');
+  const credBl  = document.getElementById('prof-credit-balance');
+  if (currentUser && currentUser.role === 'reseller' && SESSION) {
+    if (credSec) credSec.style.display = 'block';
+    sb.get('credits','reseller_id=eq.'+SESSION.userId+'&select=*&order=created_at.desc',SESSION.token)
+      .then(rows => {
+        const bal = rows ? rows.reduce((s,r)=>s+(r.amount||0),0) : 0;
+        resellerCreditBalance = bal;
+        if (credBl) credBl.textContent = '₹'+bal.toLocaleString();
+        if (!credLst) return;
+        if (!rows||!rows.length) { credLst.innerHTML='<div style="padding:20px;text-align:center;color:var(--text-light);">No credit transactions yet.</div>'; return; }
+        credLst.innerHTML = rows.map(r => {
+          const add = r.amount > 0;
+          return '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 20px;border-bottom:1px solid var(--border);">'
+            +'<div><div style="font-size:13px;font-weight:600;color:var(--text-dark);">'+(r.note||(add?'Credit Issued':'Deduction'))+'</div>'
+            +'<div style="font-size:11px;color:var(--text-light);">'+(r.created_at?formatDate(r.created_at):'—')+'</div></div>'
+            +'<div style="font-size:16px;font-weight:700;color:'+(add?'#059669':'#dc2626')+';">'+(add?'+':'')+'₹'+Math.abs(r.amount).toLocaleString()+'</div>'
+            +'</div>';
+        }).join('');
+      }).catch(()=>{ if(credLst) credLst.innerHTML='<div style="padding:16px;color:var(--danger);">Could not load.</div>'; });
+  } else { if(credSec) credSec.style.display='none'; }
   const u = currentUserProfile;
   const el = id => document.getElementById(id);
   if (el('prof-name'))     el('prof-name').value     = u.name     || '';
@@ -5363,6 +5468,82 @@ function renderMyOrders(filter) {
   }).join('') || '<tr><td colspan="7"><div class="empty-state" style="padding:24px;"><p>No orders found.</p></div></td></tr>';
 }
 
+function applyOrderFilters() {
+  const customerQ = (document.getElementById('order-filter-customer')?.value || '').toLowerCase().trim();
+  const productQ  = (document.getElementById('order-filter-product')?.value || '').toLowerCase().trim();
+  const dateQ     = document.getElementById('order-filter-date')?.value || '';
+  const currentTab = document.querySelector('#page-my-orders .tab.active')?.textContent?.toLowerCase() || 'all';
+  const statusMap = { 'all':'all', 'pending':'pending', 'confirmed':'confirmed', 'shipped':'shipped', 'delivered':'delivered' };
+  const statusFilter = Object.entries(statusMap).find(([k]) => currentTab.includes(k))?.[1] || 'all';
+
+  const isAdminOrMgr = currentUser?.role === 'admin' || currentUser?.role === 'manager';
+  let orders = isAdminOrMgr ? ORDERS : ORDERS.filter(o => o.resellerEmail === currentUser?.email);
+  if (statusFilter !== 'all') orders = orders.filter(o => o.status === statusFilter);
+  if (customerQ)  orders = orders.filter(o => (o.customer||'').toLowerCase().includes(customerQ));
+  if (productQ)   orders = orders.filter(o => (o.product||'').toLowerCase().includes(productQ) ||
+    (o.items||[]).some(i => (i.name||'').toLowerCase().includes(productQ)));
+  if (dateQ)      orders = orders.filter(o => o.date && o.date.startsWith(dateQ));
+
+  renderOrdersFiltered(orders);
+}
+
+function clearOrderFilters() {
+  const c = document.getElementById('order-filter-customer');
+  const p = document.getElementById('order-filter-product');
+  const d = document.getElementById('order-filter-date');
+  if (c) c.value = '';
+  if (p) p.value = '';
+  if (d) d.value = '';
+  applyOrderFilters();
+}
+
+function renderOrdersFiltered(orders) {
+  const isMobile2 = window.innerWidth <= 600;
+  const tbody = document.getElementById('my-orders-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = orders.map(o => {
+    const prodSumm = productSummary(o);
+    if (isMobile2) {
+      return `<tr><td colspan="7" style="padding:0 0 10px 0;border:none;">
+        <div style="background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#faf8fc;border-bottom:1px solid #f0eaf7;" onclick="viewOrder('${o.id}')">
+            <span style="font-family:monospace;font-size:11px;color:var(--purple-light);font-weight:600;">${o.id}</span>
+            ${statusBadge(o.status)}
+          </div>
+          <div style="padding:10px 14px;" onclick="viewOrder('${o.id}')">
+            <div style="font-size:13px;font-weight:600;color:var(--text-dark);margin-bottom:3px;">${prodSumm}</div>
+            <div style="font-size:12px;color:var(--text-light);margin-bottom:6px;">${o.customer} · ${formatDate(o.date)}</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:16px;font-weight:700;color:var(--purple-dark);">₹${o.price.toLocaleString()}</span>
+              <div style="display:flex;gap:6px;">
+                ${o.status!=='cancelled'?`<button class="btn btn-outline btn-sm" onclick="event.stopPropagation();showInvoice('${o.id}')">Invoice</button>`:''}
+                ${o.status==='shipped'?`<button class="btn btn-success btn-sm" onclick="event.stopPropagation();markDelivered('${o.id}')">✓ Done</button>`:''}
+                ${o.status==='pending'?`<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();cancelOrder('${o.id}')">Cancel</button>`:''}
+              </div>
+            </div>
+          </div>
+        </div>
+      </td></tr>`;
+    }
+    return `<tr>
+      <td><span style="font-family:monospace;font-size:12px;color:var(--purple-light);">${o.id}</span></td>
+      <td>${prodSumm}</td>
+      <td>${o.customer}</td>
+      <td style="font-weight:600;">₹${o.price.toLocaleString()}</td>
+      <td>${statusBadge(o.status)}</td>
+      <td style="font-size:12px;color:var(--text-light);font-family:monospace;" class="col-hide-sm">${o.tracking||'—'}</td>
+      <td>
+        <div style="display:flex;gap:4px;">
+          <button class="btn btn-outline btn-sm" onclick="viewOrder('${o.id}')">View</button>
+          ${o.status!=='cancelled'?`<button class="btn btn-outline btn-sm" onclick="showInvoice('${o.id}')">Inv</button>`:''}
+          ${o.status==='shipped'?`<button class="btn btn-success btn-sm" onclick="markDelivered('${o.id}')">✓</button>`:''}
+          ${o.status==='pending'?`<button class="btn btn-danger btn-sm" onclick="cancelOrder('${o.id}')">✕</button>`:''}
+        </div>
+      </td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="7"><div class="empty-state" style="padding:24px;"><p>No orders match filters.</p></div></td></tr>';
+}
+
 function filterOrders(filter, el) {
   document.querySelectorAll('#page-my-orders .tab').forEach(t => t.classList.remove('active'));
   if (el) el.classList.add('active');
@@ -5415,9 +5596,11 @@ function renderAdminOrders() {
       <td>${statusBadge(o.status)}</td>
       <td style="color:var(--text-light);font-size:12px;">${o.date?formatDate(o.date):'—'}</td>
       <td style="display:flex;gap:4px;flex-wrap:wrap;">
-        <button class="btn btn-outline btn-sm" onclick="viewOrder('${o.id}')">View</button>
-        <button class="btn btn-outline btn-sm" onclick="openEditOrder('${o.id}')">Edit</button>
-        ${o.status!=='cancelled'?`<button class="btn btn-outline btn-sm" onclick="showInvoice('${o.id}')">Invoice</button>`:''}
+        <div style="display:flex;gap:4px;flex-wrap:nowrap;">
+          <button class="btn btn-outline btn-sm" onclick="viewOrder('${o.id}')" style="padding:5px 9px;font-size:11px;">View</button>
+          <button class="btn btn-outline btn-sm" onclick="openEditOrder('${o.id}')" style="padding:5px 9px;font-size:11px;">Edit</button>
+          ${o.status!=='cancelled'?`<button class="btn btn-outline btn-sm" onclick="showInvoice('${o.id}')" style="padding:5px 9px;font-size:11px;">Inv</button>`:''}
+        </div>
       </td>
     </tr>
   `).join('') || '<tr><td colspan="8"><div class="empty-state" style="padding:24px;"><p>No orders yet.</p></div></td></tr>';
