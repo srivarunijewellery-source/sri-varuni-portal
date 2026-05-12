@@ -51,12 +51,22 @@
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
+  html {
+    background: #1a0f2e; /* URL bar / overscroll area always dark purple */
+    color-scheme: light;
+  }
   body {
     font-family: 'Nunito Sans', -apple-system, Arial, sans-serif;
     background: var(--cream);
     color: var(--text-dark);
-    min-height: 100vh;
+    min-height: 100dvh;
     font-size: 14px;
+  }
+  /* Override body background on auth screens so html shows through purple */
+  body:has(#screen-login.active),
+  body:has(#screen-signup.active),
+  body:has(#screen-forgot.active) {
+    background: #1a0f2e;
   }
 
   /* ── SCREENS ── */
@@ -873,12 +883,13 @@
     display: none;
     position: fixed;
     bottom: 0; left: 0; right: 0;
-    height: 64px;
+    height: calc(64px + env(safe-area-inset-bottom));
     background: var(--purple-dark);
     border-top: 1px solid rgba(255,255,255,0.08);
     z-index: 90;
-    padding: 0 4px;
-    padding-bottom: env(safe-area-inset-bottom);
+    padding: 0 4px env(safe-area-inset-bottom);
+    /* Extend purple into home indicator area */
+    box-shadow: 0 64px 0 64px var(--purple-dark);
   }
   .bottom-nav-inner {
     display: flex;
@@ -941,7 +952,7 @@
 
     /* Main fills full width, add bottom padding for bottom nav */
     .main-content { margin-left: 0; }
-    .page-content { padding: 16px 14px 80px; }
+    .page-content { padding: 16px 14px calc(80px + env(safe-area-inset-bottom)); }
 
     /* Topbar */
     .topbar { padding: 0 14px; height: 56px; }
@@ -973,6 +984,12 @@
 
     /* Tables */
     .table-wrap { -webkit-overflow-scrolling: touch; overflow-x: auto; }
+    /* On mobile, collapse table wrapper padding for card views */
+    @media (max-width: 600px) {
+      .table-wrap { overflow-x: visible; padding: 0; }
+      .table-wrap table { width: 100%; border-collapse: collapse; }
+      .table-wrap table thead { display: none; }
+    }
     thead th, tbody td { padding: 10px 10px; font-size: 12px; }
 
     /* Modal sheet from bottom */
@@ -1001,7 +1018,7 @@
   /* ── MOBILE RESPONSIVE 480px ──────────────────────────────────── */
   @media (max-width: 480px) {
 
-    .page-content { padding: 12px 12px 80px; }
+    .page-content { padding: 12px 12px calc(80px + env(safe-area-inset-bottom)); }
     .topbar { height: 52px; padding: 0 12px; }
     .topbar-title { font-size: 15px; }
 
@@ -1068,42 +1085,34 @@
 
 
   /* ── TABLE→CARD ON MOBILE ─────────────────────────────────── */
-  @media (max-width: 480px) {
-    /* Dashboard recent orders table */
+  /* NOTE: Card rendering is handled by JS (renderMyOrders/renderDashboard)
+     which injects full card HTML into a single <td colspan=7>.
+     These CSS rules only handle the wrapper tr/td — reset to invisible */
+  @media (max-width: 600px) {
     #reseller-orders-tbody tr,
     #my-orders-tbody tr {
       display: block;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      margin-bottom: 10px;
-      padding: 10px 12px;
-      background: #fff;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+      border: none;
+      border-radius: 0;
+      margin: 0;
+      padding: 0;
+      background: transparent;
+      box-shadow: none;
     }
     #reseller-orders-tbody td,
     #my-orders-tbody td {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 4px 0;
+      display: block;
+      padding: 0;
       border: none;
-      font-size: 12px;
+      background: transparent;
     }
     #reseller-orders-tbody td:before,
-    #my-orders-tbody td:before {
-      content: attr(data-label);
-      font-size: 10px;
-      font-weight: 600;
-      letter-spacing: 0.6px;
-      text-transform: uppercase;
-      color: var(--text-light);
-      margin-right: 8px;
-      flex-shrink: 0;
-    }
-    /* Hide thead on mobile for these tables */
-    #reseller-orders-tbody ~ thead,
+    #my-orders-tbody td:before { display: none; }
     table:has(#reseller-orders-tbody) thead,
     table:has(#my-orders-tbody) thead { display: none; }
+    /* Remove table wrapper styling on mobile */
+    #reseller-orders-tbody ~ *,
+    #my-orders-tbody ~ * { }
   }
 
   /* ── SWIPE GESTURE FEEL ───────────────────────────────────── */
@@ -5350,23 +5359,23 @@ function renderInvoices(role) {
       const gst   = calcGST(o.price, 3);
       const total = o.price + gst;
       return `<tr><td colspan="9" style="padding:0;border:none;">
-        <div style="background:#fff;border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden;">
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--border);background:#faf8fc;">
+        <div style="background:#fff;border:1px solid var(--border);border-radius:12px;margin-bottom:8px;overflow:hidden;">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#faf8fc;">
             <span style="font-family:monospace;font-size:12px;color:var(--purple-light);font-weight:600;">${invoiceNo(o.id)}</span>
             <span style="font-size:11px;color:var(--text-light);">${formatDate(o.date)}</span>
           </div>
-          <div style="padding:12px 14px;">
-            <div style="font-size:13px;font-weight:600;color:var(--text-dark);margin-bottom:6px;">${o.product}</div>
-            ${role !== 'reseller' ? `<div style="font-size:12px;color:var(--text-light);margin-bottom:6px;">Reseller: ${o.reseller}</div>` : ''}
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
-              <div>
-                <span style="font-size:11px;color:var(--text-light);">Subtotal: ₹${o.price.toLocaleString()} + GST: ₹${gst}</span>
-                <div style="font-size:16px;font-weight:700;color:var(--purple-dark);">₹${total.toLocaleString()}</div>
+          <div style="padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;">
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:13px;font-weight:600;color:var(--text-dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${productSummary(o)}</div>
+              ${role !== 'reseller' ? `<div style="font-size:11px;color:var(--text-light);">${o.reseller}</div>` : ''}
+              <div style="margin-top:4px;">
+                <span style="font-size:11px;color:var(--text-light);">₹${o.price.toLocaleString()} + ₹${gst} GST = </span>
+                <span style="font-size:14px;font-weight:700;color:var(--purple-dark);">₹${total.toLocaleString()}</span>
               </div>
-              <div style="display:flex;flex-direction:column;gap:6px;">
-                <button class="btn btn-outline btn-sm" onclick="showInvoice('${o.id}')">View</button>
-                <button class="btn btn-gold btn-sm" onclick="showInvoice('${o.id}')">⬇ PDF</button>
-              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0;">
+              <button class="btn btn-outline btn-sm" onclick="showInvoice('${o.id}')" style="padding:7px 12px;font-size:11px;">View</button>
+              <button class="btn btn-gold btn-sm" onclick="showInvoice('${o.id}')" style="padding:7px 12px;font-size:11px;">⬇ PDF</button>
             </div>
           </div>
         </div>
