@@ -3009,6 +3009,9 @@
 </div>
 
 <!-- Toast notification -->
+<!-- Temp debug button - remove after push confirmed working -->
+<button id="push-debug-btn" onclick="pushDebug()" style="position:fixed;bottom:calc(72px + env(safe-area-inset-bottom) + 8px);right:12px;z-index:8000;background:#1a0f2e;color:#c9a96e;border:1px solid rgba(201,169,110,0.4);border-radius:50%;width:40px;height:40px;font-size:16px;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,0.4);display:none;">🔔</button>
+
 <div id="toast" class="toast success">
   <span id="toast-msg"></span>
 </div>
@@ -3603,7 +3606,7 @@ async function loadOrders() {
       items: r.items || [],
       qty: (r.items || []).reduce((s, i) => s + i.qty, 0),
       price: r.total_price,
-      reseller: r.reseller_name, resellerEmail: r.reseller_email,
+      reseller: r.reseller_name, resellerEmail: r.reseller_email, resellerId: r.reseller_id,
       customer: r.customer_name, phone: r.customer_phone,
       address: r.customer_address, city: r.customer_city,
       state: r.customer_state, pin: r.customer_pin,
@@ -4400,7 +4403,8 @@ async function saveTracking() {
     closeModal('modal-tracking');
     renderAdminPending();
     if (document.getElementById('page-admin-orders').classList.contains('active')) renderAdminOrders();
-    showToast('Tracking added! Reseller notified via WhatsApp.');
+    showToast('Tracking added! Reseller notified.');
+    if (o.resellerId) notifyOrderShipped(o.id, o.resellerId, num);
     const pendingOrderCount = ORDERS.filter(o => ['pending','confirmed'].includes(o.status)).length;
   const badge = document.getElementById('admin-order-badge');
   if (badge) badge.textContent = pendingOrderCount;
@@ -5911,9 +5915,13 @@ async function initServiceWorker() {
 
 // ── A2HS (Add to Home Screen) ─────────────────────────────────
 function isInstalledAsPWA() {
-  return window.matchMedia('(display-mode: standalone)').matches
-    || window.navigator.standalone === true
-    || document.referrer.includes('android-app://');
+  // iOS Safari sets navigator.standalone = true when launched from home screen
+  if (window.navigator.standalone === true) return true;
+  // Android Chrome / desktop PWA
+  if (window.matchMedia('(display-mode: standalone)').matches) return true;
+  // Android TWA (Trusted Web Activity)
+  if (document.referrer.startsWith('android-app://')) return true;
+  return false;
 }
 
 function initA2HS() {
@@ -5986,24 +5994,65 @@ function dismissA2HS(skipNotif) {
 // ── Push Permission & Subscription ───────────────────────────
 function showNotifBanner(force) {
   if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
-  if (Notification.permission === 'granted') return; // Already enabled
-  if (Notification.permission === 'denied') return;  // Permanently blocked
+  if (Notification.permission === 'granted') {
+    // Already granted — make sure we have an active subscription
+    ensurePushSubscription();
+    return;
+  }
+  if (Notification.permission === 'denied') return; // Permanently blocked by user
 
-  // On iOS, notifications ONLY work from home screen (PWA)
-  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  if (isIOS && !isInstalledAsPWA()) return;
+  const isIOS      = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isInstalled = isInstalledAsPWA();
 
-  // Respect cooldown unless forced (e.g. right after install)
-  if (!force) {
+  // iOS: MUST be installed as PWA for push to work
+  if (isIOS && !isInstalled) return;
+
+  // If installed as PWA, ignore cooldown — always show the prompt
+  // (user may have added to home screen after previously dismissing in browser)
+  if (!force && !isInstalled) {
     const dismissed = localStorage.getItem('notif_dismissed');
     if (dismissed && Date.now() - parseInt(dismissed) < 3 * 86400000) return;
   }
 
-  const delay = force ? 800 : 5000;
+  const delay = force ? 800 : (isInstalled ? 1500 : 5000);
   setTimeout(() => {
     const banner = document.getElementById('notif-banner');
     if (banner) banner.style.display = 'block';
   }, delay);
+}
+
+// If permission already granted, make sure subscription exists in DB
+async function ensurePushSubscription() {
+  if (!swRegistration || !SESSION) return;
+  try {
+    const existing = await swRegistration.pushManager.getSubscription();
+    if (!existing) {
+      // Permission granted but no active subscription — resubscribe
+      await requestPushPermission();
+    } else {
+      // Check if this endpoint is saved in DB
+      const rows = await sb.get('push_subscriptions',
+        'user_id=eq.' + SESSION.userId + '&select=id', SESSION.token).catch(() => []);
+      if (!rows || !rows.length) {
+        // Save it
+        await fetch(SUPABASE_URL + '/rest/v1/push_subscriptions', {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': 'Bearer ' + SESSION.token,
+            'Content-Type': 'application/json',
+            'Prefer': 'resolution=merge-duplicates,return=minimal'
+          },
+          body: JSON.stringify({
+            user_id: SESSION.userId,
+            endpoint: existing.endpoint,
+            role: currentUser?.role || 'reseller',
+            subscription: existing.toJSON()
+          })
+        });
+      }
+    }
+  } catch(e) { console.warn('[Push] ensureSubscription failed:', e.message); }
 }
 
 function dismissNotifBanner() {
@@ -6014,22 +6063,37 @@ function dismissNotifBanner() {
 
 async function requestPushPermission() {
   dismissNotifBanner();
-  if (!swRegistration) { showToast('Service worker not ready', 'error'); return; }
 
+  // Wait for SW to be ready
+  if (!swRegistration) {
+    console.warn('[Push] SW not ready, waiting...');
+    try {
+      swRegistration = await navigator.serviceWorker.ready;
+    } catch(e) {
+      showToast('Notifications not supported on this browser', 'error');
+      return;
+    }
+  }
+
+  console.log('[Push] requesting permission...');
   const permission = await Notification.requestPermission();
+  console.log('[Push] permission result:', permission);
+
   if (permission !== 'granted') {
-    showToast('Notifications blocked — enable in browser settings', 'error');
+    showToast('Notifications blocked — enable in browser Settings → Notifications', 'error');
     return;
   }
 
   try {
+    console.log('[Push] subscribing to push...');
     const sub = await swRegistration.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
     });
+    console.log('[Push] subscription created:', sub.endpoint.slice(0, 60) + '...');
 
     // Save subscription to Supabase
-    await fetch(SUPABASE_URL + '/rest/v1/push_subscriptions', {
+    const res = await fetch(SUPABASE_URL + '/rest/v1/push_subscriptions', {
       method: 'POST',
       headers: {
         'apikey': SUPABASE_KEY,
@@ -6044,12 +6108,13 @@ async function requestPushPermission() {
         subscription: sub.toJSON()
       })
     });
+    console.log('[Push] saved to DB — HTTP', res.status);
 
     showToast('🔔 Notifications enabled!');
     localStorage.setItem('notif_granted', '1');
   } catch(e) {
-    console.warn('[Push] subscription failed:', e.message);
-    showToast('Could not enable notifications', 'error');
+    console.error('[Push] subscription failed:', e.message, e);
+    showToast('Could not enable notifications: ' + e.message, 'error');
   }
 }
 
@@ -6144,8 +6209,73 @@ function notifyNewReseller(name, city) {
 // ── Init on page load ─────────────────────────────────────────
 window.addEventListener('load', () => {
   initServiceWorker();
-  // A2HS check runs after login (in enterApp)
+  // Show debug button on mobile only
+  if (window.innerWidth <= 768) {
+    const btn = document.getElementById('push-debug-btn');
+    if (btn) btn.style.display = 'flex';
+    btn.style.alignItems = 'center';
+    btn.style.justifyContent = 'center';
+  }
 });
+
+async function pushDebug() {
+  const swSupported  = 'serviceWorker' in navigator;
+  const notifSupport = 'Notification' in window;
+  const permission   = notifSupport ? Notification.permission : 'N/A';
+  const isPWA        = isInstalledAsPWA();
+  const dismissed    = localStorage.getItem('notif_dismissed') 
+    ? new Date(parseInt(localStorage.getItem('notif_dismissed'))).toLocaleString() 
+    : 'never';
+  const granted      = localStorage.getItem('notif_granted') || 'no';
+
+  let swState = 'not registered';
+  let subEndpoint = 'none';
+  if (swSupported) {
+    const reg = await navigator.serviceWorker.getRegistration().catch(() => null);
+    swState = reg ? (reg.active ? 'active ✓' : 'installing...') : 'not registered';
+    if (reg) {
+      const sub = await reg.pushManager.getSubscription().catch(() => null);
+      subEndpoint = sub ? sub.endpoint.slice(0,40) + '...' : 'none — NOT subscribed';
+    }
+  }
+
+  const msg = [
+    '── Push Debug ──',
+    'SW supported: ' + swSupported,
+    'SW state: ' + swState,
+    'Notif API: ' + notifSupport,
+    'Permission: ' + permission,
+    'Is PWA: ' + isPWA,
+    'Subscription: ' + subEndpoint,
+    'Previously dismissed: ' + dismissed,
+    'Was granted before: ' + granted,
+    '',
+    'Tap OK then check console.',
+  ].join('\n');
+
+  alert(msg);
+
+  // Also log to console for remote debugging
+  console.log('[PushDebug]', {
+    swSupported, swState, notifSupport, permission,
+    isPWA, subEndpoint, dismissed, granted,
+    userAgent: navigator.userAgent
+  });
+
+  // Offer to subscribe if not yet
+  if (permission === 'default' && notifSupport) {
+    if (confirm('Subscribe to notifications now?')) {
+      requestPushPermission();
+    }
+  } else if (permission === 'denied') {
+    alert('Notifications BLOCKED. Go to Settings > Browser > Notifications > Allow for this site.');
+
+  } else if (permission === 'granted' && subEndpoint === 'none — NOT subscribed') {
+    if (confirm('Permission granted but not subscribed. Fix now?')) {
+      requestPushPermission();
+    }
+  }
+}
 
 console.log('SRI VARUNI PORTAL v3.2 - CREDITS + NOTIFICATIONS FIXED');
   // Set date
