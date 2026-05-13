@@ -3010,7 +3010,7 @@
 
 <!-- Toast notification -->
 <!-- Temp debug button - remove after push confirmed working -->
-<button id="push-debug-btn" onclick="pushDebug()" style="position:fixed;bottom:calc(72px + env(safe-area-inset-bottom) + 8px);right:12px;z-index:8000;background:#1a0f2e;color:#c9a96e;border:1px solid rgba(201,169,110,0.4);border-radius:50%;width:40px;height:40px;font-size:16px;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,0.4);display:none;">🔔</button>
+<button id="push-debug-btn" onclick="pushDebug()" style="position:fixed;top:60px;right:12px;z-index:99999;background:#c9a96e;color:#1a0f2e;border:none;border-radius:20px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,0.4);display:none;">🔔 Push Debug</button>
 
 <div id="toast" class="toast success">
   <span id="toast-msg"></span>
@@ -3563,7 +3563,19 @@ async function enterApp() {
   if (pc) pc.style.opacity = '1';
   if (isAdmin) showPage('admin-dashboard');
   else showPage('dashboard');
-  setTimeout(() => { initA2HS(); showNotifBanner(); }, 2000);
+  setTimeout(async () => {
+    initA2HS();
+    // If notifications not yet set up, go straight to requesting permission
+    if ('Notification' in window && 'serviceWorker' in navigator) {
+      if (Notification.permission === 'default') {
+        // Show banner after short delay
+        showNotifBanner(true);
+      } else if (Notification.permission === 'granted') {
+        // Already granted - make sure subscription exists
+        ensurePushSubscription();
+      }
+    }
+  }, 3000);
 }
 /* === app.data.js === */
 async function loadAllData() {
@@ -6007,11 +6019,11 @@ function showNotifBanner(force) {
   // iOS: MUST be installed as PWA for push to work
   if (isIOS && !isInstalled) return;
 
-  // If installed as PWA, ignore cooldown — always show the prompt
-  // (user may have added to home screen after previously dismissing in browser)
-  if (!force && !isInstalled) {
+  // Clear any old cooldown if now running as PWA
+  if (isInstalled) localStorage.removeItem('notif_dismissed');
+  if (!force) {
     const dismissed = localStorage.getItem('notif_dismissed');
-    if (dismissed && Date.now() - parseInt(dismissed) < 3 * 86400000) return;
+    if (dismissed && Date.now() - parseInt(dismissed) < 86400000) return; // 1 day only
   }
 
   const delay = force ? 800 : (isInstalled ? 1500 : 5000);
@@ -6209,13 +6221,9 @@ function notifyNewReseller(name, city) {
 // ── Init on page load ─────────────────────────────────────────
 window.addEventListener('load', () => {
   initServiceWorker();
-  // Show debug button on mobile only
-  if (window.innerWidth <= 768) {
-    const btn = document.getElementById('push-debug-btn');
-    if (btn) btn.style.display = 'flex';
-    btn.style.alignItems = 'center';
-    btn.style.justifyContent = 'center';
-  }
+  // Show debug button on all devices
+  const dbgBtn = document.getElementById('push-debug-btn');
+  if (dbgBtn) dbgBtn.style.display = 'block';
 });
 
 async function pushDebug() {
