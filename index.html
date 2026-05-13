@@ -13,6 +13,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#1a0f2e">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+  <meta name="apple-mobile-web-app-title" content="Sri Varuni">
 <title>Sri Varuni Partner Portal</title>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -1456,6 +1459,38 @@
 <!-- ══════════════════════════════════════════════
      SCREEN: MAIN APP
 ══════════════════════════════════════════════ -->
+<!-- ── ADD TO HOME SCREEN BANNER ── -->
+<div id="a2hs-banner" style="display:none;position:fixed;bottom:80px;left:12px;right:12px;background:var(--purple-dark);color:#fff;border-radius:14px;padding:14px 16px;z-index:9000;box-shadow:0 8px 32px rgba(0,0,0,0.4);border:1px solid rgba(201,169,110,0.3);">
+  <div style="display:flex;align-items:flex-start;gap:12px;">
+    <div style="font-size:28px;flex-shrink:0;">📱</div>
+    <div style="flex:1;">
+      <div style="font-size:13px;font-weight:700;color:var(--gold);margin-bottom:4px;">Add to Home Screen</div>
+      <div id="a2hs-instructions" style="font-size:12px;color:rgba(255,255,255,.8);line-height:1.5;"></div>
+    </div>
+    <button onclick="dismissA2HS()" style="background:none;border:none;color:rgba(255,255,255,.5);font-size:20px;cursor:pointer;flex-shrink:0;padding:0;line-height:1;">×</button>
+  </div>
+  <div style="display:flex;gap:8px;margin-top:12px;">
+    <button id="a2hs-install-btn" onclick="triggerA2HS()" style="display:none;flex:1;background:var(--gold);color:var(--purple-dark);border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;">Add to Home Screen</button>
+    <button onclick="dismissA2HS()" style="flex:1;background:rgba(255,255,255,.1);color:#fff;border:none;border-radius:8px;padding:10px;font-size:13px;cursor:pointer;">Later</button>
+  </div>
+</div>
+
+<!-- ── NOTIFICATION PERMISSION BANNER ── -->
+<div id="notif-banner" style="display:none;position:fixed;bottom:80px;left:12px;right:12px;background:linear-gradient(135deg,#1e3a5f,#1a2d4a);color:#fff;border-radius:14px;padding:14px 16px;z-index:8999;box-shadow:0 8px 32px rgba(0,0,0,0.4);border:1px solid rgba(59,130,246,0.3);">
+  <div style="display:flex;align-items:flex-start;gap:12px;">
+    <div style="font-size:28px;flex-shrink:0;">🔔</div>
+    <div style="flex:1;">
+      <div style="font-size:13px;font-weight:700;color:#93c5fd;margin-bottom:4px;">Stay Updated</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.8);line-height:1.5;">Get notified about order updates, payment confirmations and credit changes.</div>
+    </div>
+    <button onclick="dismissNotifBanner()" style="background:none;border:none;color:rgba(255,255,255,.5);font-size:20px;cursor:pointer;flex-shrink:0;padding:0;line-height:1;">×</button>
+  </div>
+  <div style="display:flex;gap:8px;margin-top:12px;">
+    <button onclick="requestPushPermission()" style="flex:1;background:#3b82f6;color:#fff;border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;">Enable Notifications</button>
+    <button onclick="dismissNotifBanner()" style="flex:1;background:rgba(255,255,255,.1);color:#fff;border:none;border-radius:8px;padding:10px;font-size:13px;cursor:pointer;">Not Now</button>
+  </div>
+</div>
+
 <div id="screen-app" class="screen">
 
   <!-- SIDEBAR -->
@@ -3525,6 +3560,7 @@ async function enterApp() {
   if (pc) pc.style.opacity = '1';
   if (isAdmin) showPage('admin-dashboard');
   else showPage('dashboard');
+  setTimeout(() => { initA2HS(); showNotifBanner(); }, 2000);
 }
 /* === app.data.js === */
 async function loadAllData() {
@@ -4338,6 +4374,7 @@ async function verifyPayment(orderId) {
     renderAdminPending();
     if (document.getElementById('page-admin-orders').classList.contains('active')) renderAdminOrders();
     showToast('Payment verified. Reseller notified!');
+    if (o.resellerId || o.reseller_id) notifyPaymentVerified(orderId, o.resellerId || o.reseller_id);
     const pendingOrderCount = ORDERS.filter(o => ['pending','confirmed'].includes(o.status)).length;
   const badge = document.getElementById('admin-order-badge');
   if (badge) badge.textContent = pendingOrderCount;
@@ -5022,6 +5059,7 @@ async function saveCredit() {
     }
     closeModal('modal-credit');
     showToast((finalAmount > 0 ? '₹' + Math.abs(finalAmount) + ' credited to ' : '₹' + Math.abs(finalAmount) + ' deducted from ') + currentCreditReseller.name);
+    if (finalAmount > 0 && resellerId) notifyCreditIssued(resellerId, finalAmount, note);
   } catch(err) { 
     console.error('saveCredit error:', err);
     const errBox = document.getElementById('credit-error-box');
@@ -5845,7 +5883,271 @@ document.addEventListener('keydown', function(e) {
 });
 
 document.addEventListener('DOMContentLoaded', async () => {
-  console.log('SRI VARUNI PORTAL v3.2 - CREDITS + NOTIFICATIONS FIXED');
+  
+// ═══════════════════════════════════════════════════════════════
+// PUSH NOTIFICATIONS & PWA
+// ═══════════════════════════════════════════════════════════════
+
+const VAPID_PUBLIC_KEY = 'BLV2yRPWGIEjYlnSE7XRUjhxhpcdu72JjFtbl2Xz--y7XyYWHld9amAYjWUHYmdVkJa1Vn3o1ddMZgzoWRCaqLk';
+const PUSH_FUNCTION_URL = 'https://brtepaeqocjxmkinrwpg.supabase.co/functions/v1/send-push';
+let deferredA2HSPrompt = null;
+let swRegistration    = null;
+
+// ── Service Worker Registration ───────────────────────────────
+async function initServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+  try {
+    swRegistration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    console.info('[SW] registered');
+    // Listen for notification clicks from SW
+    navigator.serviceWorker.addEventListener('message', e => {
+      if (e.data?.type === 'NOTIFICATION_CLICK' && e.data.url) {
+        const page = e.data.url.replace('/', '');
+        if (page) showPage(page);
+      }
+    });
+  } catch(e) { console.warn('[SW] registration failed:', e.message); }
+}
+
+// ── A2HS (Add to Home Screen) ─────────────────────────────────
+function isInstalledAsPWA() {
+  return window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone === true
+    || document.referrer.includes('android-app://');
+}
+
+function initA2HS() {
+  const dismissed = localStorage.getItem('a2hs_dismissed');
+  if (dismissed && Date.now() - parseInt(dismissed) < 7 * 86400000) return;
+
+  // Already installed — skip A2HS, go straight to notification permission
+  if (isInstalledAsPWA()) {
+    showNotifBanner();
+    return;
+  }
+
+  // Android Chrome: capture beforeinstallprompt event
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredA2HSPrompt = e;
+    showA2HSBanner('android');
+  });
+
+  // iOS: show manual instructions
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  if (isIOS) {
+    setTimeout(() => showA2HSBanner('ios'), 3000);
+  }
+}
+
+function showA2HSBanner(platform) {
+  const banner = document.getElementById('a2hs-banner');
+  const instBtn = document.getElementById('a2hs-install-btn');
+  const instructions = document.getElementById('a2hs-instructions');
+  if (!banner) return;
+
+  if (platform === 'android') {
+    instBtn.style.display = 'block';
+    instructions.textContent = 'Install the app for a better experience and to enable notifications.';
+  } else {
+    instBtn.style.display = 'none';
+    instructions.innerHTML = 'Tap <strong>Share</strong> <span style="font-size:14px;">⎙</span> at the bottom of your browser, then tap <strong>"Add to Home Screen"</strong>.';
+  }
+  banner.style.display = 'block';
+}
+
+function triggerA2HS() {
+  if (!deferredA2HSPrompt) return;
+  deferredA2HSPrompt.prompt();
+  deferredA2HSPrompt.userChoice.then(result => {
+    deferredA2HSPrompt = null;
+    dismissA2HS();
+    if (result.outcome === 'accepted') {
+      showToast('✓ App installed! Open from your home screen.');
+      // After install, offer notifications (with short delay)
+      setTimeout(() => showNotifBanner(true), 1500);
+    }
+  });
+}
+
+function dismissA2HS(skipNotif) {
+  const banner = document.getElementById('a2hs-banner');
+  if (banner) banner.style.display = 'none';
+  localStorage.setItem('a2hs_dismissed', Date.now().toString());
+  // On iOS: if they dismiss A2HS, don't push notifications yet
+  // (push only works from home screen on iOS)
+  // On Android: they said "Later" to install, so offer notifs separately
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  if (!skipNotif && !isIOS) {
+    setTimeout(() => showNotifBanner(), 1000);
+  }
+}
+
+// ── Push Permission & Subscription ───────────────────────────
+function showNotifBanner(force) {
+  if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
+  if (Notification.permission === 'granted') return; // Already enabled
+  if (Notification.permission === 'denied') return;  // Permanently blocked
+
+  // On iOS, notifications ONLY work from home screen (PWA)
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  if (isIOS && !isInstalledAsPWA()) return;
+
+  // Respect cooldown unless forced (e.g. right after install)
+  if (!force) {
+    const dismissed = localStorage.getItem('notif_dismissed');
+    if (dismissed && Date.now() - parseInt(dismissed) < 3 * 86400000) return;
+  }
+
+  const delay = force ? 800 : 5000;
+  setTimeout(() => {
+    const banner = document.getElementById('notif-banner');
+    if (banner) banner.style.display = 'block';
+  }, delay);
+}
+
+function dismissNotifBanner() {
+  const banner = document.getElementById('notif-banner');
+  if (banner) banner.style.display = 'none';
+  localStorage.setItem('notif_dismissed', Date.now().toString());
+}
+
+async function requestPushPermission() {
+  dismissNotifBanner();
+  if (!swRegistration) { showToast('Service worker not ready', 'error'); return; }
+
+  const permission = await Notification.requestPermission();
+  if (permission !== 'granted') {
+    showToast('Notifications blocked — enable in browser settings', 'error');
+    return;
+  }
+
+  try {
+    const sub = await swRegistration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+    });
+
+    // Save subscription to Supabase
+    await fetch(SUPABASE_URL + '/rest/v1/push_subscriptions', {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SESSION.token,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates,return=minimal'
+      },
+      body: JSON.stringify({
+        user_id:      SESSION.userId,
+        endpoint:     sub.endpoint,
+        role:         currentUser?.role || 'reseller',
+        subscription: sub.toJSON()
+      })
+    });
+
+    showToast('🔔 Notifications enabled!');
+    localStorage.setItem('notif_granted', '1');
+  } catch(e) {
+    console.warn('[Push] subscription failed:', e.message);
+    showToast('Could not enable notifications', 'error');
+  }
+}
+
+// VAPID key converter
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64  = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(base64);
+  const array = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) array[i] = raw.charCodeAt(i);
+  return array;
+}
+
+// ── Send Push Notifications from app ─────────────────────────
+async function sendPush(target, notification) {
+  if (!SESSION?.token) return;
+  try {
+    await fetch(PUSH_FUNCTION_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + SESSION.token,
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_KEY
+      },
+      body: JSON.stringify({ target, notification })
+    });
+  } catch(e) { console.warn('[Push] send failed:', e.message); }
+}
+
+// ── Trigger: Order placed ─────────────────────────────────────
+function notifyOrderPlaced(orderId, resellerName, amount) {
+  // Notify admins
+  sendPush('admins', {
+    title: '🛍 New Order ' + orderId,
+    body:  resellerName + ' placed an order for ₹' + amount.toLocaleString(),
+    tag:   'order-' + orderId,
+    url:   '/admin-orders'
+  });
+  // Notify the reseller
+  if (SESSION?.userId) {
+    sendPush(SESSION.userId, {
+      title: '✅ Order Placed!',
+      body:  orderId + ' submitted for ₹' + amount.toLocaleString() + ' — awaiting verification',
+      tag:   'order-' + orderId,
+      url:   '/my-orders'
+    });
+  }
+}
+
+// ── Trigger: Payment verified ─────────────────────────────────
+function notifyPaymentVerified(orderId, resellerId) {
+  sendPush(resellerId, {
+    title: '✅ Payment Verified — ' + orderId,
+    body:  'Your order is confirmed and being processed!',
+    tag:   'verified-' + orderId,
+    url:   '/my-orders',
+    requireInteraction: true
+  });
+}
+
+// ── Trigger: Order shipped ────────────────────────────────────
+function notifyOrderShipped(orderId, resellerId, tracking) {
+  sendPush(resellerId, {
+    title: '📦 Order Shipped — ' + orderId,
+    body:  'Tracking: ' + tracking + ' — your order is on the way!',
+    tag:   'shipped-' + orderId,
+    url:   '/my-orders',
+    requireInteraction: true
+  });
+}
+
+// ── Trigger: Credit issued ────────────────────────────────────
+function notifyCreditIssued(resellerId, amount, note) {
+  sendPush(resellerId, {
+    title: '💳 Credits Added — ₹' + Math.abs(amount).toLocaleString(),
+    body:  note || 'Credits have been added to your account',
+    tag:   'credit-' + Date.now(),
+    url:   '/my-profile'
+  });
+}
+
+// ── Trigger: New reseller signup ──────────────────────────────
+function notifyNewReseller(name, city) {
+  sendPush('admins', {
+    title: '👤 New Reseller Signup',
+    body:  name + ' from ' + city + ' — awaiting approval',
+    tag:   'reseller-signup',
+    url:   '/admin-resellers'
+  });
+}
+
+// ── Init on page load ─────────────────────────────────────────
+window.addEventListener('load', () => {
+  initServiceWorker();
+  // A2HS check runs after login (in enterApp)
+});
+
+console.log('SRI VARUNI PORTAL v3.2 - CREDITS + NOTIFICATIONS FIXED');
   // Set date
   const dateEl = document.getElementById('topbar-date');
   if (dateEl) dateEl.textContent = new Date().toLocaleDateString('en-IN', { weekday:'short', day:'numeric', month:'long', year:'numeric' });
