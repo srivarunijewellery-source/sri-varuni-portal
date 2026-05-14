@@ -285,6 +285,8 @@
   /* ── APP LAYOUT ── */
   #screen-app {
     flex-direction: row;
+    overflow: hidden;
+    min-height: 100dvh;
   }
 
   /* SIDEBAR */
@@ -441,7 +443,7 @@
 
   /* ── PAGES ── */
   .page { display: none; }
-  .page.active { display: block; }
+  .page.active { display: block; min-height: 0; }
 
   /* DASHBOARD */
   .stats-grid {
