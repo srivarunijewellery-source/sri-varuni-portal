@@ -3011,8 +3011,7 @@
 </div>
 
 <!-- Toast notification -->
-<!-- Temp debug button - remove after push confirmed working -->
-<button id="push-debug-btn" onclick="pushDebug()" style="position:fixed;top:60px;right:12px;z-index:99999;background:#c9a96e;color:#1a0f2e;border:none;border-radius:20px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,0.4);display:none;">🔔 Push Debug</button>
+
 
 <div id="toast" class="toast success">
   <span id="toast-msg"></span>
@@ -3549,10 +3548,13 @@ async function enterApp() {
   const bnavConfig = document.getElementById('bnav-config-item');
   if (bnavConfig) bnavConfig.style.display = (role === 'admin') ? 'flex' : 'none';
   // Bottom nav — show correct variant
+  // Bottom nav visibility — only on mobile (CSS handles ≤768px)
+  // JS just sets which variant (reseller/admin) — CSS controls mobile-only
   const bnavReseller = document.getElementById('bottom-nav-reseller');
   const bnavAdmin    = document.getElementById('bottom-nav-admin');
-  if (bnavReseller) bnavReseller.style.display = isAdmin ? 'none' : 'flex';
-  if (bnavAdmin)    bnavAdmin.style.display    = isAdmin ? 'flex' : 'none';
+  const isMobileView = window.innerWidth <= 768;
+  if (bnavReseller) bnavReseller.style.display = (!isAdmin && isMobileView) ? 'flex' : 'none';
+  if (bnavAdmin)    bnavAdmin.style.display    = (isAdmin  && isMobileView) ? 'flex' : 'none';
   document.querySelectorAll('.page').forEach(p => { p.classList.remove('active'); });
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   syncBottomNav(name);
@@ -3588,6 +3590,13 @@ async function loadAllData() {
     ]);
     if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'manager')) {
       await loadResellers().catch(e => console.warn('Resellers load failed:', e));
+    }
+    // Pre-load reseller credit balance so it's ready when place-order opens
+    if (currentUser && currentUser.role === 'reseller' && SESSION) {
+      sb.get('credits', 'reseller_id=eq.' + SESSION.userId + '&select=amount', SESSION.token)
+        .then(rows => {
+          resellerCreditBalance = rows ? rows.reduce((s,r) => s + (r.amount||0), 0) : 0;
+        }).catch(() => {});
     }
   } catch(e) { console.warn('loadAllData error:', e); }
 }
@@ -3936,16 +3945,25 @@ function initBehalfSelector() {
         resellerCreditBalance = rows ? rows.reduce((s,r) => s + (r.amount||0), 0) : 0;
       }).catch(() => { resellerCreditBalance = 0; });
   }
-  // Show credit banner for resellers in step 1
-  const creditBanner = document.getElementById('order-credit-banner');
+  // Show credit banner for resellers — fetch fresh then display
+  const creditBanner    = document.getElementById('order-credit-banner');
   const creditBannerAmt = document.getElementById('order-credit-banner-amount');
-  if (currentUser && currentUser.role === 'reseller' && creditBanner) {
-    if (resellerCreditBalance > 0) {
-      creditBanner.style.display = 'flex';
-      if (creditBannerAmt) creditBannerAmt.textContent = '₹' + resellerCreditBalance.toLocaleString();
-    } else {
-      creditBanner.style.display = 'none';
-    }
+  if (currentUser && currentUser.role === 'reseller' && creditBanner && SESSION) {
+    const showBal = bal => {
+      if (bal > 0) {
+        creditBanner.style.display = 'flex';
+        if (creditBannerAmt) creditBannerAmt.textContent = '₹' + bal.toLocaleString();
+      } else {
+        creditBanner.style.display = 'none';
+      }
+    };
+    showBal(resellerCreditBalance); // show cached first
+    sb.get('credits','reseller_id=eq.'+SESSION.userId+'&select=amount',SESSION.token)
+      .then(rows => {
+        const bal = rows ? rows.reduce((s,r) => s+(r.amount||0),0) : 0;
+        resellerCreditBalance = bal;
+        showBal(bal);
+      }).catch(() => {});
   }
 }
 
@@ -6223,9 +6241,7 @@ function notifyNewReseller(name, city) {
 // ── Init on page load ─────────────────────────────────────────
 window.addEventListener('load', () => {
   initServiceWorker();
-  // Show debug button on all devices
-  const dbgBtn = document.getElementById('push-debug-btn');
-  if (dbgBtn) dbgBtn.style.display = 'block';
+
 });
 
 async function pushDebug() {
