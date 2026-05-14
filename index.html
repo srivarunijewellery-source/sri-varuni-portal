@@ -4860,23 +4860,26 @@ async function saveLogo() {
   if (btn) { btn.textContent = 'Uploading...'; btn.disabled = true; }
   try {
     // Use dataURLtoBlob — avoids fetch() on data: URLs which hangs in browsers
-    const blob = dataURLtoBlob(pendingLogoData);
-    const ext  = blob.type.includes('png') ? 'png' : blob.type.includes('webp') ? 'webp' : 'jpg';
-    const path = 'brand/logo_' + Date.now() + '.' + ext;
-
-    // Upload to Supabase storage
-    const uploadRes = await fetch(SUPABASE_URL + '/storage/v1/object/logos/' + path, {
-      method: 'POST',
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SESSION.token },
-      body: blob
-    });
     let logoUrl;
-    if (uploadRes.ok || uploadRes.status === 200 || uploadRes.status === 201) {
-      logoUrl = SUPABASE_URL + '/storage/v1/object/public/logos/' + path;
-    } else {
-      // Storage bucket may not exist — store as data URL in settings directly
-      console.warn('Storage upload failed (' + uploadRes.status + '), using data URL fallback');
-      logoUrl = pendingLogoData;
+    try {
+      const blob = dataURLtoBlob(pendingLogoData);
+      const ext  = blob.type.includes('png') ? 'png' : blob.type.includes('webp') ? 'webp' : blob.type.includes('svg') ? 'svg' : 'jpg';
+      const path = 'brand/logo_' + Date.now() + '.' + ext;
+      const uploadRes = await fetch(SUPABASE_URL + '/storage/v1/object/logos/' + path, {
+        method: 'POST',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SESSION.token },
+        body: blob
+      });
+      if (uploadRes.ok || uploadRes.status === 200 || uploadRes.status === 201) {
+        logoUrl = SUPABASE_URL + '/storage/v1/object/public/logos/' + path;
+      } else {
+        const errText = await uploadRes.text().catch(() => '');
+        console.warn('Storage upload failed (' + uploadRes.status + '):', errText);
+        logoUrl = pendingLogoData; // fallback to data URL
+      }
+    } catch(uploadErr) {
+      console.warn('Logo storage error:', uploadErr.message);
+      logoUrl = pendingLogoData; // fallback to data URL
     }
 
     // Save logo URL to settings table (single-row, id=1, column=logo_url)
@@ -5384,6 +5387,14 @@ async function loadPortalSettings() {
     set('config-phone',    s.contact_phone);
     set('config-gst',      s.gst_number);
     set('config-gst-pct',  s.gst_pct);
+    // Show current logo if set
+    if (s.logo_url) {
+      const preview = document.getElementById('logo-preview');
+      const dark    = document.getElementById('logo-preview-dark');
+      if (preview) { preview.src = s.logo_url; preview.style.display = 'block'; }
+      if (dark)    { dark.src    = s.logo_url; dark.style.display    = 'block'; }
+      applyLogoEverywhere(s.logo_url);
+    }
   } catch(e) { console.warn('loadPortalSettings:', e.message); }
 }
 
@@ -5395,13 +5406,24 @@ async function savePortalSettings() {
     gst_pct:       parseInt(document.getElementById('config-gst-pct').value) || 3
   };
   try {
-    // Upsert settings row (assumes single-row settings table with id=1)
-    await fetch(SUPABASE_URL + '/rest/v1/settings?id=eq.1', {
+    // Try PATCH first, if no rows affected do an INSERT
+    const patchRes = await fetch(SUPABASE_URL + '/rest/v1/settings?id=eq.1', {
       method: 'PATCH',
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SESSION.token, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SESSION.token,
+        'Content-Type': 'application/json', 'Prefer': 'return=representation' },
       body: JSON.stringify(body)
     });
-    showToast('Settings saved');
+    const patched = await patchRes.json().catch(() => []);
+    if (!patched || patched.length === 0) {
+      // Row doesn't exist — insert it
+      await fetch(SUPABASE_URL + '/rest/v1/settings', {
+        method: 'POST',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SESSION.token,
+          'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ id: 1, ...body })
+      });
+    }
+    showToast('Settings saved ✓');
   } catch(err) { showToast('Failed: ' + err.message, 'error'); }
 }
 
