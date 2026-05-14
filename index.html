@@ -5912,8 +5912,11 @@ document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') closeScreenshotViewer();
 });
 
-document.addEventListener('DOMContentLoaded', async () => {
-  
+// ── Init on page load ─────────────────────────────────────────
+window.addEventListener('load', () => {
+  initServiceWorker();
+});
+
 // ═══════════════════════════════════════════════════════════════
 // PUSH NOTIFICATIONS & PWA
 // ═══════════════════════════════════════════════════════════════
@@ -6235,7 +6238,6 @@ function notifyNewReseller(name, city) {
 // ── Init on page load ─────────────────────────────────────────
 window.addEventListener('load', () => {
   initServiceWorker();
-
 });
 
 async function pushDebug() {
@@ -6297,7 +6299,9 @@ async function pushDebug() {
   }
 }
 
-console.log('SRI VARUNI PORTAL v3.2 - CREDITS + NOTIFICATIONS FIXED');
+console.log('SRI VARUNI PORTAL v3.2');
+
+document.addEventListener('DOMContentLoaded', async () => {
   // Set date
   const dateEl = document.getElementById('topbar-date');
   if (dateEl) dateEl.textContent = new Date().toLocaleDateString('en-IN', { weekday:'short', day:'numeric', month:'long', year:'numeric' });
