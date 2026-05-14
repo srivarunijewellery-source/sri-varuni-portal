@@ -3931,6 +3931,20 @@ async function initBehalfSelector() {
   if (!section || !sel) return;
   const isAdminOrMgr = currentUser && (currentUser.role === 'admin' || hasPermission('place_order'));
   section.style.display = isAdminOrMgr ? 'block' : 'none';
+
+  // Credit banner for resellers — runs regardless of admin/manager check
+  const creditBanner    = document.getElementById('order-credit-banner');
+  const creditBannerAmt = document.getElementById('order-credit-banner-amount');
+  if (currentUser && currentUser.role === 'reseller' && creditBanner && SESSION) {
+    try {
+      const rows = await sb.get('credits', 'reseller_id=eq.'+SESSION.userId+'&select=amount', SESSION.token);
+      const bal  = rows ? rows.reduce((s,r) => s+(r.amount||0), 0) : 0;
+      resellerCreditBalance = bal;
+      creditBanner.style.display = bal > 0 ? 'flex' : 'none';
+      if (creditBannerAmt) creditBannerAmt.textContent = '₹' + bal.toLocaleString();
+    } catch(e) { creditBanner.style.display = 'none'; }
+  }
+
   if (!isAdminOrMgr) { orderBehalfReseller = null; return; }
   // Populate dropdown with active resellers
   const activeResellers = RESELLERS.filter(r => r.status === 'active');
@@ -3944,26 +3958,6 @@ async function initBehalfSelector() {
       .then(rows => {
         resellerCreditBalance = rows ? rows.reduce((s,r) => s + (r.amount||0), 0) : 0;
       }).catch(() => { resellerCreditBalance = 0; });
-  }
-  // Show credit banner for resellers — fetch fresh then display
-  const creditBanner    = document.getElementById('order-credit-banner');
-  const creditBannerAmt = document.getElementById('order-credit-banner-amount');
-  if (currentUser && currentUser.role === 'reseller' && creditBanner && SESSION) {
-    const showBal = bal => {
-      if (bal > 0) {
-        creditBanner.style.display = 'flex';
-        if (creditBannerAmt) creditBannerAmt.textContent = '₹' + bal.toLocaleString();
-      } else {
-        creditBanner.style.display = 'none';
-      }
-    };
-    showBal(resellerCreditBalance); // show cached first
-    try {
-      const rows = await sb.get('credits','reseller_id=eq.'+SESSION.userId+'&select=amount',SESSION.token);
-      const bal = rows ? rows.reduce((s,r) => s+(r.amount||0),0) : 0;
-      resellerCreditBalance = bal;
-      showBal(bal);
-    } catch(e) {}
   }
 }
 
