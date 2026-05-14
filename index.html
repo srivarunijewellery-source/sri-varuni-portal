@@ -4923,7 +4923,7 @@ async function saveLogo() {
 
 async function loadBrandLogo() {
   try {
-    const rows = await sb.get('settings', 'id=eq.1&select=logo_url', SESSION && SESSION.token);
+    const rows = await sb.get('settings', 'key=eq.business_name&select=logo_url', SESSION && SESSION.token);
     if (rows && rows[0] && rows[0].logo_url) applyLogoEverywhere(rows[0].logo_url);
   } catch(e) { /* logo optional */ }
 }
