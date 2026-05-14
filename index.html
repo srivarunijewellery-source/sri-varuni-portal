@@ -4854,6 +4854,12 @@ function handleLogoUpload(input) {
   input.value = '';
 }
 
+function openLogoUpload() {
+  // Reset state
+  clearLogoUpload();
+  openModal('modal-logo');
+}
+
 async function saveLogo() {
   if (!pendingLogoData) { showToast('Please upload a logo first', 'error'); return; }
   const btn = document.querySelector('#modal-logo .btn-primary');
